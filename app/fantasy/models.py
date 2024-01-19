@@ -8,6 +8,9 @@ class CyberSport(models.Model):
     name = models.CharField(max_length=128)
     is_active = models.BooleanField(default=False)
 
+    def __str__(self):
+        return self.name
+
 
 class Competition(models.Model):
     name = models.CharField(max_length=128)
@@ -18,10 +21,16 @@ class Competition(models.Model):
     status = models.CharField(max_length=64, choices=CompetitionStatusEnum.choices())
     icon = models.ImageField(upload_to='media/', null=True, blank=True)
 
+    def __str__(self):
+        return self.name
+
 
 class User(models.Model):
     nickname = models.CharField(max_length=128, null=True, blank=True)
     competition = models.ManyToManyField(to=Competition, related_name='users')
+
+    def __str__(self):
+        return self.nickname
 
 
 class Team(models.Model):
@@ -29,6 +38,9 @@ class Team(models.Model):
     cyber_sport = models.ForeignKey(to=CyberSport, on_delete=models.SET_NULL,
                                     related_name='teams', null=True, blank=True)
     icon = models.ImageField(upload_to='media/', null=True, blank=True)
+
+    def __str__(self):
+        return self.name
 
 
 class Player(models.Model):
@@ -38,13 +50,20 @@ class Player(models.Model):
     game_role = models.CharField(max_length=64, choices=GameRoleEnum.choices())
     icon = models.ImageField(upload_to='media/', null=True, blank=True)
 
+    def __str__(self):
+        return self.nickname
+
 
 class FantasyTeam(models.Model):
     user = models.ForeignKey(to=CustomUser, on_delete=models.CASCADE,
                              related_name='fantasy_teams', null=True, blank=True)
-    competition = models.ManyToManyField(to=Competition)
+    competition = models.ForeignKey(to=Competition,  on_delete=models.CASCADE,
+                                    null=True, blank=True)
     result = models.DecimalField(max_digits=10, decimal_places=2)
     name_extended = models.CharField(max_length=128, unique=True)
+
+    def __str__(self):
+        return self.name_extended
 
 
 class FantasyPlayer(models.Model):
