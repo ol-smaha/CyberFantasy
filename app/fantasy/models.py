@@ -25,14 +25,6 @@ class Competition(models.Model):
         return self.name
 
 
-class User(models.Model):
-    nickname = models.CharField(max_length=128, null=True, blank=True)
-    competition = models.ManyToManyField(to=Competition, related_name='users')
-
-    def __str__(self):
-        return self.nickname
-
-
 class Team(models.Model):
     name = models.CharField(max_length=128, null=True, blank=True)
     cyber_sport = models.ForeignKey(to=CyberSport, on_delete=models.SET_NULL,
@@ -49,6 +41,7 @@ class Player(models.Model):
                              related_name='players', null=True, blank=True)
     game_role = models.CharField(max_length=64, choices=GameRoleEnum.choices())
     icon = models.ImageField(upload_to='media/', null=True, blank=True)
+    cost = models.DecimalField(max_digits=4, decimal_places=2, default=0)
 
     def __str__(self):
         return self.nickname
@@ -58,9 +51,14 @@ class FantasyTeam(models.Model):
     user = models.ForeignKey(to=CustomUser, on_delete=models.CASCADE,
                              related_name='fantasy_teams', null=True, blank=True)
     competition = models.ForeignKey(to=Competition,  on_delete=models.CASCADE,
-                                    null=True, blank=True)
-    result = models.DecimalField(max_digits=10, decimal_places=2)
+                                    related_name='fantasy_teams', null=True, blank=True)
+    result = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     name_extended = models.CharField(max_length=128, unique=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['user', 'competition'], name='competition and user unique'),
+        ]
 
     def __str__(self):
         return self.name_extended
@@ -73,8 +71,7 @@ class FantasyPlayer(models.Model):
                                null=True, blank=True)
     fantasy_team = models.ForeignKey(to=FantasyTeam, on_delete=models.SET_NULL,
                                      null=True, blank=True)
-    result = models.DecimalField(max_digits=10, decimal_places=2)
-    quantity = models.DecimalField(max_digits=10, decimal_places=2)
+    result = models.DecimalField(max_digits=10, decimal_places=2, default=0)
 
 
 
