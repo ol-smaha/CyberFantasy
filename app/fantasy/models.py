@@ -70,7 +70,7 @@ class FantasyPlayer(models.Model):
     player = models.ForeignKey(to=Player, on_delete=models.SET_NULL,
                                null=True, blank=True)
     fantasy_team = models.ForeignKey(to=FantasyTeam, on_delete=models.SET_NULL,
-                                     null=True, blank=True)
+                                     related_name='fantasy_players', null=True, blank=True)
     result = models.DecimalField(max_digits=10, decimal_places=2, default=0)
 
 

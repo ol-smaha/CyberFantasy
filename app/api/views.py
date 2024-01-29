@@ -1,12 +1,28 @@
 from django_filters.rest_framework import DjangoFilterBackend
+from djoser.views import TokenCreateView
 from rest_framework import mixins
-from rest_framework.decorators import api_view, action
+from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
-
 from api.serializers import CompetitionSerializer, PlayerSerializer, FantasyTeamSerializer, FantasyPlayerSerializer, \
     FantasyTeamCreateSerializer, FantasyPlayerCreateSerializer, FantasyTeamRatingSerializer
 from fantasy.models import Competition, Player, FantasyTeam, FantasyPlayer
+from djoser import utils
+from djoser.conf import settings
+from rest_framework import status
+
+
+class CustomTokenCreateView(TokenCreateView):
+    def _action(self, serializer):
+        token = utils.login_user(self.request, serializer.user)
+        token_serializer_class = settings.SERIALIZERS.token
+        data = token_serializer_class(token).data
+        data.update({'username': serializer.user.username})
+
+        return Response(
+            data=data, status=status.HTTP_200_OK
+        )
 
 
 class CompetitionViewSet(mixins.ListModelMixin,
@@ -18,6 +34,7 @@ class CompetitionViewSet(mixins.ListModelMixin,
     filterset_fields = {
         'cyber_sport': ['in', 'exact']
     }
+    permission_classes = [IsAuthenticated]
 
     @action(detail=True, methods=['GET'])
     def rating(self, request, pk=None):
@@ -41,19 +58,26 @@ class PlayerViewSet(mixins.ListModelMixin,
     filterset_fields = {
         'game_role': ['in', 'exact']
     }
+    permission_classes = [IsAuthenticated]
 
 
-class FantasyTeamViewSet(mixins.RetrieveModelMixin,
+class FantasyTeamViewSet(mixins.ListModelMixin,
+                         mixins.RetrieveModelMixin,
                          mixins.CreateModelMixin,
                          mixins.UpdateModelMixin,
                          GenericViewSet):
+
     queryset = FantasyTeam.objects.all()
     serializer_class = FantasyTeamSerializer
-
     filter_backends = [DjangoFilterBackend]
     filterset_fields = {
-        'user': ['in', 'exact']
+        'competition': ['in', 'exact']
     }
+    permission_classes = [IsAuthenticated]
+
+    def filter_queryset(self, queryset):
+        queryset = queryset.filter(user=self.request.user)
+        return super().filter_queryset(queryset)
 
     def get_serializer_class(self):
         if self.action in ['create', 'update', 'partial_update']:
@@ -72,6 +96,7 @@ class FantasyPlayerViewSet(mixins.ListModelMixin,
     filterset_fields = {
         'user': ['in', 'exact']
     }
+    permission_classes = [IsAuthenticated]
 
     def get_serializer_class(self):
         if self.action in ['create', 'update', 'partial_update']:

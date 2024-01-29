@@ -1,26 +1,39 @@
 from django.contrib.auth import get_user_model
 from django.db import transaction
+from requests import Response
 from rest_framework import serializers
-from django.conf import settings
-
 from fantasy.models import CyberSport, Competition, Team, Player, FantasyTeam, FantasyPlayer
 from djoser.serializers import UserCreateSerializer
+from rest_framework.authtoken.models import Token
+
 
 from users.models import CustomUser
-
 User = get_user_model()
 
 
 class UserCreateByEmailSerializer(UserCreateSerializer):
+    token = serializers.CharField(source='auth_token.key', read_only=True)
+
     def perform_create(self, validated_data):
-        validated_data.update({'username': validated_data.get('email')})
-        print(validated_data)
+        username = validated_data.get('username')
+        if username:
+            validated_data.update({'username': validated_data.get('username')})
+        else:
+            validated_data.update({'username': validated_data.get('email')})
+
         with transaction.atomic():
             user = User.objects.create_user(**validated_data)
+            token = Token.objects.create(user=user)
+            validated_data.update({'token': token})
+        print(validated_data)
         return user
 
     class Meta(UserCreateSerializer.Meta):
-        fields = ['email', 'password', 'username']
+        fields = ['email', 'password', 'username', 'token']
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        return representation
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -59,24 +72,9 @@ class PlayerSerializer(serializers.ModelSerializer):
         fields = ['id', 'nickname', 'team', 'game_role', 'icon', 'cost']
 
 
-class FantasyTeamSerializer(serializers.ModelSerializer):
-    competition = CompetitionSerializer()
-
-    class Meta:
-        model = FantasyTeam
-        fields = ['id', 'user', 'competition', 'result', 'name_extended']
-
-
-class FantasyTeamCreateSerializer(serializers.ModelSerializer):
-
-    class Meta:
-        model = FantasyTeam
-        fields = ['user', 'competition', 'result', 'name_extended']
-
-
 class FantasyPlayerSerializer(serializers.ModelSerializer):
     player = PlayerSerializer()
-    fantasy_team = FantasyTeamSerializer()
+    # fantasy_team = FantasyTeamSerializer()
 
     class Meta:
         model = FantasyPlayer
@@ -88,6 +86,22 @@ class FantasyPlayerCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = FantasyPlayer
         fields = ['user', 'player', 'fantasy_team', 'result']
+
+
+class FantasyTeamSerializer(serializers.ModelSerializer):
+    competition = CompetitionSerializer()
+    fantasy_players = FantasyPlayerSerializer(many=True)
+
+    class Meta:
+        model = FantasyTeam
+        fields = ['id', 'user', 'competition', 'result', 'name_extended', 'fantasy_players']
+
+
+class FantasyTeamCreateSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = FantasyTeam
+        fields = ['user', 'competition', 'result', 'name_extended']
 
 
 class FantasyTeamRatingSerializer(serializers.ModelSerializer):

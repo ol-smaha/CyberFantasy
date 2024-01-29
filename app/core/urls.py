@@ -20,8 +20,8 @@ from django.conf.urls.static import static
 from django.conf import settings
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 from djoser import views as djoser_views
-from rest_framework.authtoken.views import ObtainAuthToken
 
+from api.views import CustomTokenCreateView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -31,7 +31,7 @@ urlpatterns = [
     path('api/schema/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
 
     path('api/auth/register/', djoser_views.UserViewSet.as_view({'post': 'create'}), name='create_user'),
-    path('api/token/', djoser_views.TokenCreateView.as_view(), name='token_create'),
+    path('api/token/', CustomTokenCreateView.as_view(), name='token_create'),
 
     path('api/', include('api.urls'))
 ]

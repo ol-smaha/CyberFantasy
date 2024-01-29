@@ -2,9 +2,9 @@ from enum import Enum
 
 
 class CompetitionStatusEnum(str, Enum):
-    NOT_STARTED = 'Ще не стартував'
-    STARTED = 'Активний'
-    FINISHED = 'Завершено'
+    NOT_STARTED = 'NOT STARTED'
+    STARTED = 'STARTED'
+    FINISHED = 'FINISHED'
 
     @classmethod
     def choices(cls):
@@ -14,8 +14,10 @@ class CompetitionStatusEnum(str, Enum):
 
 class GameRoleEnum(str, Enum):
     CARRY = 'CARRY'
-    MIDDER = 'MIDDER'
-    SUPPORT = 'SUPPORT'
+    MID = 'MID'
+    HARD = 'HARD'
+    SUPPORT_4 = 'SUPPORT_4'
+    SUPPORT_5 = 'SUPPORT_5'
 
     @classmethod
     def choices(cls):
