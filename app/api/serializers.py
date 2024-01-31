@@ -53,7 +53,7 @@ class CompetitionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Competition
-        fields = ['id', 'name', 'date_start', 'date_finish', 'cyber_sport', 'status', 'icon']
+        fields = ['id', 'name', 'date_start', 'date_finish', 'cyber_sport', 'status', 'icon', 'dota_id']
 
 
 class TeamSerializer(serializers.ModelSerializer):
@@ -61,7 +61,7 @@ class TeamSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Team
-        fields = ['id', 'name', 'cyber_sport', 'icon']
+        fields = ['id', 'name', 'cyber_sport', 'icon', 'dota_id']
 
 
 class PlayerSerializer(serializers.ModelSerializer):

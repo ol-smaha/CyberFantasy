@@ -12,6 +12,17 @@ class CyberSport(models.Model):
         return self.name
 
 
+class Team(models.Model):
+    name = models.CharField(max_length=128, null=True, blank=True)
+    cyber_sport = models.ForeignKey(to=CyberSport, on_delete=models.SET_NULL,
+                                    related_name='teams', null=True, blank=True)
+    icon = models.ImageField(upload_to='media/', null=True, blank=True)
+    dota_id = models.CharField(max_length=128, default='')
+
+    def __str__(self):
+        return self.name
+
+
 class Competition(models.Model):
     name = models.CharField(max_length=128)
     date_start = models.DateField(null=True, blank=True)
@@ -20,16 +31,8 @@ class Competition(models.Model):
                                     related_name='competitions', null=True, blank=True)
     status = models.CharField(max_length=64, choices=CompetitionStatusEnum.choices())
     icon = models.ImageField(upload_to='media/', null=True, blank=True)
-
-    def __str__(self):
-        return self.name
-
-
-class Team(models.Model):
-    name = models.CharField(max_length=128, null=True, blank=True)
-    cyber_sport = models.ForeignKey(to=CyberSport, on_delete=models.SET_NULL,
-                                    related_name='teams', null=True, blank=True)
-    icon = models.ImageField(upload_to='media/', null=True, blank=True)
+    dota_id = models.CharField(max_length=128, default='')
+    team = models.ManyToManyField(to=Team, related_name='competitions')
 
     def __str__(self):
         return self.name

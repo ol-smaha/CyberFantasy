@@ -6,11 +6,14 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 from api.serializers import CompetitionSerializer, PlayerSerializer, FantasyTeamSerializer, FantasyPlayerSerializer, \
-    FantasyTeamCreateSerializer, FantasyPlayerCreateSerializer, FantasyTeamRatingSerializer
+    FantasyTeamCreateSerializer, FantasyPlayerCreateSerializer, FantasyTeamRatingSerializer, UserSerializer
+
 from fantasy.models import Competition, Player, FantasyTeam, FantasyPlayer
 from djoser import utils
 from djoser.conf import settings
 from rest_framework import status
+
+from users.models import CustomUser
 
 
 class CustomTokenCreateView(TokenCreateView):
@@ -103,4 +106,17 @@ class FantasyPlayerViewSet(mixins.ListModelMixin,
             return FantasyPlayerCreateSerializer
         else:
             return self.serializer_class
+
+
+class UserViewSet(mixins.ListModelMixin,
+                  GenericViewSet):
+    queryset = CustomUser.objects.all()
+    serializer_class = UserSerializer
+    permission_classes = [IsAuthenticated]
+
+    def list(self, request, *args, **kwargs):
+        current_user = request.user
+        serializer = self.get_serializer(current_user)
+        return Response(serializer.data)
+
 
