@@ -98,10 +98,11 @@ class FantasyTeamSerializer(serializers.ModelSerializer):
 
 
 class FantasyTeamCreateSerializer(serializers.ModelSerializer):
+    fantasy_players = FantasyPlayerSerializer(many=True)
 
     class Meta:
         model = FantasyTeam
-        fields = ['user', 'competition', 'result', 'name_extended']
+        fields = ['user', 'competition', 'result', 'name_extended', 'fantasy_players']
 
 
 class FantasyTeamRatingSerializer(serializers.ModelSerializer):

@@ -6,9 +6,10 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 from api.serializers import CompetitionSerializer, PlayerSerializer, FantasyTeamSerializer, FantasyPlayerSerializer, \
-    FantasyTeamCreateSerializer, FantasyPlayerCreateSerializer, FantasyTeamRatingSerializer, UserSerializer
+    FantasyTeamCreateSerializer, FantasyPlayerCreateSerializer, FantasyTeamRatingSerializer, UserSerializer, \
+    CyberSportSerializer
 
-from fantasy.models import Competition, Player, FantasyTeam, FantasyPlayer
+from fantasy.models import Competition, Player, FantasyTeam, FantasyPlayer, CyberSport
 from djoser import utils
 from djoser.conf import settings
 from rest_framework import status
@@ -61,6 +62,13 @@ class PlayerViewSet(mixins.ListModelMixin,
     filterset_fields = {
         'game_role': ['in', 'exact']
     }
+    permission_classes = [IsAuthenticated]
+
+
+class CyberSportViewSet(mixins.ListModelMixin,
+                        GenericViewSet):
+    queryset = CyberSport.objects.all()
+    serializer_class = CyberSportSerializer
     permission_classes = [IsAuthenticated]
 
 
