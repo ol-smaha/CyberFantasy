@@ -24,6 +24,41 @@ services:
     depends_on:
       - db
 
+  redis:
+    image: "redis:alpine"
+
+  celery:
+    build: ./app
+    command: celery -A core worker -l info
+    env_file: ./.env
+    volumes:
+      - .:/code
+    depends_on:
+      - db
+      - redis
+
+  celery-beat:
+    build: ./app
+    command: celery -A core beat -l info
+    env_file: ./.env
+    volumes:
+      - .:/code
+    depends_on:
+      - db
+      - redis
+
+  flower:
+    image: mher/flower:0.9.7
+    command: ['flower', '--broker=redis://redis:6379', '--port=5555']
+    ports:
+      - "5555:5555"
+    depends_on:
+      - db
+      - redis
+      - celery
+      - celery-beat
+      - app
+
 #  nginx:
 #    build: ./nginx
 #    container_name: cyber_nginx
