@@ -1,4 +1,6 @@
 from django.db import models
+from django.utils import timezone
+
 
 from fantasy.constants import CompetitionStatusEnum, GameRoleEnum
 from users.models import CustomUser
@@ -33,6 +35,13 @@ class Competition(models.Model):
     icon = models.ImageField(upload_to='media/', null=True, blank=True)
     dota_id = models.CharField(max_length=128, default='')
     team = models.ManyToManyField(to=Team, related_name='competitions')
+    editing_start = models.DateTimeField(null=True, blank=True)
+    editing_end = models.DateTimeField(null=True, blank=True)
+
+    @property
+    def is_editing_allowed(self):
+        current_date = timezone.now()
+        return self.editing_start <= current_date <= self.editing_end
 
     def __str__(self):
         return self.name
@@ -57,6 +66,10 @@ class FantasyTeam(models.Model):
                                     related_name='fantasy_teams', null=True, blank=True)
     result = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     name_extended = models.CharField(max_length=128, unique=True)
+
+    @property
+    def edit(self):
+        return True if self.competition.is_editing_allowed else 'editing not allowed'
 
     class Meta:
         constraints = [

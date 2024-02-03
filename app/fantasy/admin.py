@@ -21,7 +21,7 @@ class CyberSportAdmin(admin.ModelAdmin):
 
 
 class CompetitionAdmin(admin.ModelAdmin):
-    list_display = ['name', 'date_start', 'date_finish', 'cyber_sport', 'status', 'icon']
+    list_display = ['name', 'date_start', 'date_finish', 'cyber_sport', 'status', 'icon', 'editing_start', 'editing_end']
 
 
 class PlayerInlines(admin.StackedInline):

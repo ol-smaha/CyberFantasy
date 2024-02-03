@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 from api.serializers import CompetitionSerializer, PlayerSerializer, FantasyTeamSerializer, FantasyPlayerSerializer, \
     FantasyTeamCreateSerializer, FantasyPlayerCreateSerializer, FantasyTeamRatingSerializer, UserSerializer, \
-    CyberSportSerializer
+    CyberSportSerializer, CompetitionEditStatusSerializer
 
 from fantasy.models import Competition, Player, FantasyTeam, FantasyPlayer, CyberSport
 from djoser import utils
@@ -51,6 +51,14 @@ class CompetitionViewSet(mixins.ListModelMixin,
         serializer = FantasyTeamRatingSerializer(fantasy_teams, many=True)
 
         return Response(serializer.data)
+
+    @action(detail=True, methods=['GET'])
+    def edit_status(self, request, pk=None):
+        instance = self.get_object()
+        serializer = CompetitionEditStatusSerializer(instance)
+        return Response({
+            'competition_details': serializer.data
+        })
 
 
 class PlayerViewSet(mixins.ListModelMixin,

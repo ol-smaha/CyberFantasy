@@ -56,6 +56,18 @@ class CompetitionSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'date_start', 'date_finish', 'cyber_sport', 'status', 'icon', 'dota_id']
 
 
+class CompetitionEditStatusSerializer(serializers.ModelSerializer):
+    is_editing_allowed = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Competition
+        fields = ['editing_start', 'editing_end', 'is_editing_allowed']
+
+    @staticmethod
+    def get_is_editing_allowed(obj):
+        return obj.is_editing_allowed
+
+
 class TeamSerializer(serializers.ModelSerializer):
     cyber_sport = CyberSportSerializer()
 
