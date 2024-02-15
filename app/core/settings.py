@@ -48,6 +48,8 @@ INSTALLED_APPS = [
 
     'rest_framework_simplejwt',
     'django_filters',
+    'django_celery_beat',
+    'django_json_widget',
 
     'fantasy',
     'users',
@@ -193,5 +195,6 @@ CELERY_BEAT_SCHEDULE = {
     'hello': {
         'task': 'fantasy.tasks.hello',
         'schedule': crontab()
-    }
+    },
 }
+

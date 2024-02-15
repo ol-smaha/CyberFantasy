@@ -1,8 +1,10 @@
 from django.contrib.auth import get_user_model
 from django.db import transaction
+from django.db.models import Sum
 from requests import Response
 from rest_framework import serializers
-from fantasy.models import CyberSport, Competition, Team, Player, FantasyTeam, FantasyPlayer
+from fantasy.models import CyberSport, Competition, Team, Player, FantasyTeam, FantasyPlayer, PlayerMatchResult, \
+    CompetitionTour
 from djoser.serializers import UserCreateSerializer
 from rest_framework.authtoken.models import Token
 
@@ -84,20 +86,40 @@ class PlayerSerializer(serializers.ModelSerializer):
         fields = ['id', 'nickname', 'team', 'game_role', 'icon', 'cost']
 
 
+class CompetitionTourSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CompetitionTour
+        fields = ['id', 'start_date', 'end_date']
+
+
+class PlayerMatchResultSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PlayerMatchResult
+        fields = ['result']
+
+
 class FantasyPlayerSerializer(serializers.ModelSerializer):
     player = PlayerSerializer()
-    # fantasy_team = FantasyTeamSerializer()
+    competition_tour = CompetitionTourSerializer()
 
     class Meta:
         model = FantasyPlayer
-        fields = ['id', 'user', 'player', 'fantasy_team', 'result']
+        fields = ['id', 'user', 'player', 'fantasy_team', 'competition_tour']
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        player_match_results = PlayerMatchResult.objects.filter(player=instance.player,
+                                                                competition_tour=instance.competition_tour)
+        player_match_results_data = PlayerMatchResultSerializer(player_match_results, many=True).data
+        representation['player_match_results'] = player_match_results_data
+        return representation
 
 
 class FantasyPlayerCreateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = FantasyPlayer
-        fields = ['user', 'player', 'fantasy_team', 'result']
+        fields = ['user', 'player', 'fantasy_team']
 
 
 class FantasyTeamSerializer(serializers.ModelSerializer):
@@ -107,6 +129,21 @@ class FantasyTeamSerializer(serializers.ModelSerializer):
     class Meta:
         model = FantasyTeam
         fields = ['id', 'user', 'competition', 'result', 'name_extended', 'fantasy_players']
+
+    def get_result(self, obj):
+        player_ids = obj.fantasy_players.values_list('player', flat=True)
+        competition_tour_ids = obj.fantasy_players.values_list('competition_tour', flat=True)
+        player_match_results = PlayerMatchResult.objects.filter(
+            player__in=player_ids,
+            competition_tour__in=competition_tour_ids
+        )
+        total_result = player_match_results.aggregate(total=Sum('result'))['total']
+        return total_result if total_result is not None else 0
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        representation['result'] = self.get_result(instance)
+        return representation
 
 
 class FantasyTeamCreateSerializer(serializers.ModelSerializer):

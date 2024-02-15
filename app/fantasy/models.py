@@ -40,8 +40,11 @@ class Competition(models.Model):
 
     @property
     def is_editing_allowed(self):
-        current_date = timezone.now()
-        return self.editing_start <= current_date <= self.editing_end
+        if self.editing_start and self.editing_end:
+            current_date = timezone.now()
+            return self.editing_start <= current_date <= self.editing_end
+        else:
+            return False
 
     def __str__(self):
         return self.name
@@ -54,6 +57,7 @@ class Player(models.Model):
     game_role = models.CharField(max_length=64, choices=GameRoleEnum.choices())
     icon = models.ImageField(upload_to='media/', null=True, blank=True)
     cost = models.DecimalField(max_digits=4, decimal_places=2, default=0)
+    dota_id = models.CharField(max_length=128, default='')
 
     def __str__(self):
         return self.nickname
@@ -80,6 +84,13 @@ class FantasyTeam(models.Model):
         return self.name_extended
 
 
+class CompetitionTour(models.Model):
+    start_date = models.DateTimeField(null=True, blank=True)
+    end_date = models.DateTimeField(null=True, blank=True)
+    competition = models.ForeignKey(to=Competition, on_delete=models.CASCADE,
+                                    related_name='competition_tours', null=True, blank=True)
+
+
 class FantasyPlayer(models.Model):
     user = models.ForeignKey(to=CustomUser, on_delete=models.CASCADE,
                              related_name='fantasy_users', null=True, blank=True)
@@ -87,11 +98,27 @@ class FantasyPlayer(models.Model):
                                null=True, blank=True)
     fantasy_team = models.ForeignKey(to=FantasyTeam, on_delete=models.SET_NULL,
                                      related_name='fantasy_players', null=True, blank=True)
+    competition_tour = models.ForeignKey(to=CompetitionTour, on_delete=models.CASCADE,
+                                         related_name='fantasy_players', null=True, blank=True)
+
+
+class MatchInfoDota(models.Model):
+    dota_id = models.CharField(max_length=128, default='')
+    data = models.JSONField()
+    is_rated = models.BooleanField(default=False)
+
+    def __str__(self):
+        return self.dota_id
+
+
+class PlayerMatchResult(models.Model):
+    player = models.ForeignKey(to=Player, on_delete=models.SET_NULL,
+                               related_name='players_res', null=True, blank=True)
+    match_info = models.ForeignKey(to=MatchInfoDota, on_delete=models.SET_NULL,
+                                   related_name='players_res', null=True, blank=True)
     result = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-
-
-
-
+    competition_tour = models.ForeignKey(to=CompetitionTour, on_delete=models.CASCADE,
+                                         related_name='player_match_results', null=True, blank=True)
 
 
 
