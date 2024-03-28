@@ -25,9 +25,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.environ.get('DJANGO_SECRET')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = bool(int(os.environ.get('DEBUG')))
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS').split(' ')
 
 
 # Application definition
@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'django_filters',
     'django_celery_beat',
+    'django_celery_results',
     'django_json_widget',
 
     'fantasy',
@@ -108,20 +109,7 @@ DATABASES = {
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
 
-AUTH_PASSWORD_VALIDATORS = [
-    {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
-    },
-]
+AUTH_PASSWORD_VALIDATORS = []
 
 
 # Internationalization
@@ -185,16 +173,24 @@ SILENCED_SYSTEM_CHECKS = ["auth.W004"]
 
 
 # CELERY
+CELERY_RESULT_BACKEND = 'django-db'
 CELERY_BROKER_URL = 'redis://redis:6379'
-CELERY_RESULT_BACKEND = 'redis://redis:6379'
 CELERY_ACCEPT_CONTENT = ['application/json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'Europe/Kiev'
+CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
 
-CELERY_BEAT_SCHEDULE = {
-    'hello': {
-        'task': 'fantasy.tasks.hello',
-        'schedule': crontab()
-    },
+
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": f"redis://redis:6379/1",
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        },
+    }
 }
 
+
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 10**5

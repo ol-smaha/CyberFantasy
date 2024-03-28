@@ -39,7 +39,7 @@ class DotaApiConnector:
     def get_match_info(self, id_match):
         url = f'{self.BASE_URL}matches/{id_match}'
         response = self.get(url=url)
-
+        print(response.status_code)
         if response.ok:
             data = response.json()
             return data

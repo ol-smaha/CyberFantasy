@@ -1,10 +1,9 @@
 from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.db.models import Sum
-from requests import Response
 from rest_framework import serializers
-from fantasy.models import CyberSport, Competition, Team, Player, FantasyTeam, FantasyPlayer, PlayerMatchResult, \
-    CompetitionTour
+from fantasy.models import Competition, Team, Player, FantasyTeam, FantasyPlayer, PlayerMatchResult, \
+    CompetitionTour, FantasyTeamTour
 from djoser.serializers import UserCreateSerializer
 from rest_framework.authtoken.models import Token
 
@@ -44,26 +43,28 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ['id', 'username']
 
 
-class CyberSportSerializer(serializers.ModelSerializer):
+class CompetitionTourSerializer(serializers.ModelSerializer):
     class Meta:
-        model = CyberSport
-        fields = ['id', 'name', 'is_active']
+        model = CompetitionTour
+        fields = ['id', 'name', 'start_date', 'end_date', 'status',
+                  'editing_start', 'editing_end', 'is_editing_allowed']
 
 
 class CompetitionSerializer(serializers.ModelSerializer):
-    cyber_sport = CyberSportSerializer()
+    tours = CompetitionTourSerializer(source='competition_tours', many=True)
 
     class Meta:
         model = Competition
-        fields = ['id', 'name', 'date_start', 'date_finish', 'cyber_sport', 'status', 'icon', 'dota_id']
+        fields = ['id', 'name', 'date_start', 'date_finish', 'status', 'icon', 'dota_id', 'active_tour', 'tours']
 
 
 class CompetitionEditStatusSerializer(serializers.ModelSerializer):
     is_editing_allowed = serializers.SerializerMethodField()
+    active_tour = CompetitionTourSerializer()
 
     class Meta:
         model = Competition
-        fields = ['editing_start', 'editing_end', 'is_editing_allowed']
+        fields = ['is_editing_allowed', 'active_tour']
 
     @staticmethod
     def get_is_editing_allowed(obj):
@@ -71,11 +72,9 @@ class CompetitionEditStatusSerializer(serializers.ModelSerializer):
 
 
 class TeamSerializer(serializers.ModelSerializer):
-    cyber_sport = CyberSportSerializer()
-
     class Meta:
         model = Team
-        fields = ['id', 'name', 'cyber_sport', 'icon', 'dota_id']
+        fields = ['id', 'name', 'icon', 'dota_id']
 
 
 class PlayerSerializer(serializers.ModelSerializer):
@@ -86,12 +85,6 @@ class PlayerSerializer(serializers.ModelSerializer):
         fields = ['id', 'nickname', 'team', 'game_role', 'icon', 'cost']
 
 
-class CompetitionTourSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = CompetitionTour
-        fields = ['id', 'start_date', 'end_date']
-
-
 class PlayerMatchResultSerializer(serializers.ModelSerializer):
     class Meta:
         model = PlayerMatchResult
@@ -100,54 +93,28 @@ class PlayerMatchResultSerializer(serializers.ModelSerializer):
 
 class FantasyPlayerSerializer(serializers.ModelSerializer):
     player = PlayerSerializer()
-    competition_tour = CompetitionTourSerializer()
 
     class Meta:
         model = FantasyPlayer
-        fields = ['id', 'user', 'player', 'fantasy_team', 'competition_tour']
-
-    def to_representation(self, instance):
-        representation = super().to_representation(instance)
-        player_match_results = PlayerMatchResult.objects.filter(player=instance.player,
-                                                                competition_tour=instance.competition_tour)
-        player_match_results_data = PlayerMatchResultSerializer(player_match_results, many=True).data
-        representation['player_match_results'] = player_match_results_data
-        return representation
+        fields = ['id', 'player', 'fantasy_team_tour', 'result']
 
 
 class FantasyPlayerCreateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = FantasyPlayer
-        fields = ['user', 'player', 'fantasy_team']
+        fields = ['player', 'fantasy_team_tour', 'result']
 
 
 class FantasyTeamSerializer(serializers.ModelSerializer):
     competition = CompetitionSerializer()
-    fantasy_players = FantasyPlayerSerializer(many=True)
 
     class Meta:
         model = FantasyTeam
-        fields = ['id', 'user', 'competition', 'result', 'name_extended', 'fantasy_players']
-
-    def get_result(self, obj):
-        player_ids = obj.fantasy_players.values_list('player', flat=True)
-        competition_tour_ids = obj.fantasy_players.values_list('competition_tour', flat=True)
-        player_match_results = PlayerMatchResult.objects.filter(
-            player__in=player_ids,
-            competition_tour__in=competition_tour_ids
-        )
-        total_result = player_match_results.aggregate(total=Sum('result'))['total']
-        return total_result if total_result is not None else 0
-
-    def to_representation(self, instance):
-        representation = super().to_representation(instance)
-        representation['result'] = self.get_result(instance)
-        return representation
+        fields = ['id', 'user', 'competition', 'result', 'name_extended']
 
 
 class FantasyTeamCreateSerializer(serializers.ModelSerializer):
-
     class Meta:
         model = FantasyTeam
         fields = ['user', 'competition', 'result', 'name_extended']
@@ -161,5 +128,23 @@ class FantasyTeamRatingSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = FantasyTeam
-        fields = ['user',  'result']
+        fields = ['id', 'user',  'result']
+
+
+class FantasyTeamTourSerializer(serializers.ModelSerializer):
+    competition_tour = CompetitionTourSerializer()
+    fantasy_players = FantasyPlayerSerializer(many=True, required=False)
+
+    class Meta:
+        model = FantasyTeamTour
+        fields = ['id', 'fantasy_team', 'competition_tour', 'result', 'fantasy_players']
+
+
+class FantasyTeamTourCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FantasyTeamTour
+        fields = ['fantasy_team', 'competition_tour']
+
+    def to_representation(self, instance):
+        return FantasyTeamTourSerializer(context=self.context).to_representation(instance)
 
