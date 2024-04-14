@@ -68,7 +68,7 @@ class CompetitionTour(models.Model):
 
 class Player(models.Model):
     class Meta:
-        ordering = ['nickname']
+        ordering = ['-cost', 'team__name', 'nickname']
 
     nickname = models.CharField(max_length=128, null=True, blank=True)
     team = models.ForeignKey(to=Team, on_delete=models.SET_NULL,

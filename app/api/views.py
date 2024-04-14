@@ -6,6 +6,8 @@ from rest_framework.filters import OrderingFilter
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
+
+from api.filters import PlayersFilterSet
 from api.serializers import CompetitionSerializer, PlayerSerializer, FantasyTeamSerializer, FantasyPlayerSerializer, \
     FantasyTeamCreateSerializer, FantasyPlayerCreateSerializer, FantasyTeamRatingSerializer, UserSerializer, \
     CompetitionEditStatusSerializer, CompetitionTourSerializer, FantasyTeamTourSerializer, \
@@ -86,11 +88,9 @@ class PlayerViewSet(mixins.ListModelMixin,
                     GenericViewSet):
     queryset = Player.objects.all()
     serializer_class = PlayerSerializer
-    filter_backends = (DjangoFilterBackend, OrderingFilter)
-    filterset_fields = {
-        'game_role': ['in', 'exact']
-    }
-    ordering = ('-cost', 'team__name', 'nickname')
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = PlayersFilterSet
+    # ordering = ('-cost', 'team__name', 'nickname')
     permission_classes = [IsAuthenticated]
 
 
