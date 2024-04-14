@@ -11,7 +11,8 @@ class Team(models.Model):
     class Meta:
         ordering = ['name']
 
-    name = models.CharField(max_length=128, null=True, blank=True)
+    name = models.CharField(max_length=64)
+    short_name = models.CharField(max_length=8, null=True, blank=True)
     icon = models.ImageField(upload_to='media/', null=True, blank=True)
     dota_id = models.CharField(max_length=128, default='')
 

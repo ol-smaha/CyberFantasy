@@ -57,8 +57,8 @@ class CompetitionAdmin(admin.ModelAdmin):
 
 
 class TeamAdmin(admin.ModelAdmin):
-    list_display = ['name', 'icon']
-    search_fields = ['name']
+    list_display = ['name', 'short_name', 'icon']
+    search_fields = ['name', 'short_name']
     inlines = [PlayerInline]
 
 

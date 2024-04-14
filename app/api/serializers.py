@@ -74,7 +74,7 @@ class CompetitionEditStatusSerializer(serializers.ModelSerializer):
 class TeamSerializer(serializers.ModelSerializer):
     class Meta:
         model = Team
-        fields = ['id', 'name', 'icon', 'dota_id']
+        fields = ['id', 'name', 'short_name', 'icon', 'dota_id']
 
 
 class PlayerSerializer(serializers.ModelSerializer):
