@@ -2,6 +2,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import TokenCreateView
 from rest_framework import mixins
 from rest_framework.decorators import action
+from rest_framework.filters import OrderingFilter
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
@@ -85,10 +86,11 @@ class PlayerViewSet(mixins.ListModelMixin,
                     GenericViewSet):
     queryset = Player.objects.all()
     serializer_class = PlayerSerializer
-    filter_backends = [DjangoFilterBackend]
+    filter_backends = (DjangoFilterBackend, OrderingFilter)
     filterset_fields = {
         'game_role': ['in', 'exact']
     }
+    ordering = ('-cost', 'team__name', 'nickname')
     permission_classes = [IsAuthenticated]
 
 
