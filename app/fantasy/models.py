@@ -136,7 +136,6 @@ class FantasyTeamTour(models.Model):
 
     def set_result(self):
         res = self.fantasy_players.all().aggregate(total_result=Sum('result'))['total_result']
-        print(res)
         self.result = res or 0
         self.save()
 

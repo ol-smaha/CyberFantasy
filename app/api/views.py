@@ -1,3 +1,4 @@
+from django.db.models import Sum
 from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import TokenCreateView
 from rest_framework import mixins
@@ -157,16 +158,30 @@ class FantasyPlayerViewSet(mixins.ListModelMixin,
 
     def perform_create(self, serializer):
         try:
-            tour = serializer.validated_data.get('fantasy_team_tour')
-            if tour.competition_tour.is_editing_allowed:
+            ft_tour = serializer.validated_data.get('fantasy_team_tour')
+            player = serializer.validated_data.get('player')
+            team_cost = (ft_tour.fantasy_players.all()
+                         .aggregate(team_cost=Sum('player__cost'))['team_cost']) or 0.00
+            current_player_cost = (ft_tour.fantasy_players
+                                   .filter(player__game_role=player.game_role)
+                                   .aggregate(total_cost=Sum('player__cost')))['total_cost'] or 0.00
+            allowable_balance = 50.0 - float(team_cost) + float(current_player_cost)
+            if ft_tour.competition_tour.is_editing_allowed and float(player.cost) <= allowable_balance:
                 serializer.save()
         except KeyError:
             pass
 
     def perform_update(self, serializer):
         try:
-            tour = serializer.validated_data.get('fantasy_team_tour')
-            if tour.competition_tour.is_editing_allowed:
+            ft_tour = serializer.validated_data.get('fantasy_team_tour')
+            player = serializer.validated_data.get('player')
+            team_cost = (ft_tour.fantasy_players.all()
+                         .aggregate(team_cost=Sum('player__cost'))['team_cost']) or 0.00
+            current_player_cost = (ft_tour.fantasy_players
+                                   .filter(player__game_role=player.game_role)
+                                   .aggregate(total_cost=Sum('player__cost')))['total_cost'] or 0.00
+            allowable_balance = 50.0 - float(team_cost) + float(current_player_cost)
+            if ft_tour.competition_tour.is_editing_allowed and float(player.cost) <= allowable_balance:
                 serializer.save()
         except KeyError:
             pass
