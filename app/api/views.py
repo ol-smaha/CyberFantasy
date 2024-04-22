@@ -4,7 +4,7 @@ from djoser.views import TokenCreateView
 from rest_framework import mixins
 from rest_framework.decorators import action
 from rest_framework.filters import OrderingFilter
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 
@@ -12,14 +12,14 @@ from api.filters import PlayersFilterSet
 from api.serializers import CompetitionSerializer, PlayerSerializer, FantasyTeamSerializer, FantasyPlayerSerializer, \
     FantasyTeamCreateSerializer, FantasyPlayerCreateSerializer, FantasyTeamRatingSerializer, UserSerializer, \
     CompetitionEditStatusSerializer, CompetitionTourSerializer, FantasyTeamTourSerializer, \
-    FantasyTeamTourCreateSerializer
+    FantasyTeamTourCreateSerializer, AppErrorReportSerializer
 
 from fantasy.models import Competition, Player, FantasyTeam, FantasyPlayer, CompetitionTour, FantasyTeamTour
 from djoser import utils
 from djoser.conf import settings
 from rest_framework import status
 
-from users.models import CustomUser
+from users.models import CustomUser, AppErrorReport
 
 
 class CustomTokenCreateView(TokenCreateView):
@@ -199,3 +199,8 @@ class UserViewSet(mixins.ListModelMixin,
         return Response(serializer.data)
 
 
+class AppReportViewSet(mixins.CreateModelMixin,
+                       GenericViewSet):
+    queryset = AppErrorReport.objects.all()
+    serializer_class = AppErrorReportSerializer
+    permission_classes = [AllowAny]

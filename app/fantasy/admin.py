@@ -126,7 +126,7 @@ class MatchInfoDotaAdmin(admin.ModelAdmin):
 
 class PlayerMatchResultAdmin(admin.ModelAdmin):
     list_display = ['player', 'match', 'result']
-    search_fields = ['player__nickname']
+    search_fields = ['player__nickname', 'match__dota_id']
     raw_id_fields = ('player', 'match',)
 
 

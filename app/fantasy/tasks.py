@@ -5,7 +5,7 @@ from datetime import datetime
 
 from celery import shared_task
 from api.connectors import DotaApiConnector
-from fantasy.constants import CompetitionStatusEnum
+from fantasy.constants import CompetitionStatusEnum, GameRoleEnum
 from fantasy.models import Competition, Match, Player, PlayerMatchResult, CompetitionTour, FantasyPlayer, \
     FantasyTeam, FantasyTeamTour
 
@@ -72,12 +72,13 @@ def save_results_to_player(match_dota_ids):
     matches = Match.objects.filter(dota_id__in=match_dota_ids)
     for match in matches:
         for account_id, result in match.result_data.items():
+            print(result)
             if Player.objects.filter(dota_id=account_id).exists():
                 player = Player.objects.get(dota_id=account_id)
                 obj, created = PlayerMatchResult.objects.update_or_create(
                     player=player,
                     match=match,
-                    defaults={"result": result},
+                    defaults={"result": result.get('TOTAL', 0)},
                 )
                 print(obj, created)
         match.is_saved_to_players = True
@@ -122,33 +123,127 @@ def dota_update():
 
 def result_from_player_data(player_data):
     result = 0
+    result_dict = {}
     points = {
-        'kills': {'type': '+', 'coef': '5.0'},
-        'deaths': {'type': '-', 'coef': '1.5'}
+        'kills': {
+            'type': '+',
+            'coef': {'core': 2, 'support': 3},
+        },
+        'deaths': {
+            'type': '-',
+            'coef': {'core': 2, 'support': 1.5},
+        },
+        'assists': {
+            'type': '+',
+            'coef': {'core': 1, 'support': 1},
+        },
+        'last_hits': {
+            'type': '+',
+            'coef': {'core': 0.01, 'support': 0.02},
+        },
+        'denies': {
+            'type': '+',
+            'coef': {'core': 0.02, 'support': 0.04},
+        },
+        'hero_damage': {
+            'type': '+',
+            'coef': {'core': 0.0002, 'support': 0.0002},
+        },
+        'tower_damage': {
+            'type': '+',
+            'coef': {'core': 0.0002, 'support': 0.0002},
+        },
+        'camps_stacked': {
+            'type': '+',
+            'coef': {'core': 0.15, 'support': 0.25},
+        },
+        'rune_pickups': {
+            'type': '+',
+            'coef': {'core': 0.1, 'support': 0.1},
+        },
+        'obs_placed': {
+            'type': '+',
+            'coef': {'core': 0.1, 'support': 0.1},
+        },
+        'sen_placed': {
+            'type': '+',
+            'coef': {'core': 0.15, 'support': 0.2},
+        },
+        'observer_kills': {
+            'type': '+',
+            'coef': {'core': 0.1, 'support': 0.1},
+        },
+        'sentry_kills': {
+            'type': '+',
+            'coef': {'core': 0.15, 'support': 0.2},
+        },
+        'courier_kills': {
+            'type': '+',
+            'coef': {'core': 1.5, 'support': 1.5},
+        },
+        'stuns': {
+            'type': '+',
+            'coef': {'core': 0.1, 'support': 0.1},
+        },
+        'hero_healing': {
+            'type': '+',
+            'coef': {'core': 0.001, 'support': 0.0015},
+        },
+        'buyback_count': {
+            'type': '-',
+            'coef': {'core': 1.5, 'support': 1.5},
+        },
+        'teamfight_participation': {
+            'type': '+',
+            'coef': {'core': 5, 'support': 5},
+        },
     }
 
-    for action, details in points.items():
-        coef = float(details['coef'])
-        value = float(player_data.get(action)) if player_data.get(action) is not None else 0
-        if details['type'] == '+':
-            result += coef * value
-        elif details['type'] == '-':
-            result -= coef * value
+    player = Player.objects.get(dota_id=player_data.get('account_id'))
+    result_dict.update({'NICKNAME': player.nickname, 'TOTAL': result})
 
-    return result
+    if player.game_role in [GameRoleEnum.CARRY, GameRoleEnum.MID, GameRoleEnum.HARD]:
+        pl_role = 'core'
+    else:
+        pl_role = 'support'
+
+    for action, details in points.items():
+        value = float(player_data.get(action)) if player_data.get(action) is not None else 0
+        coef = details.get('coef', {}).get(pl_role, 0)
+        action_res = 0
+
+        if details['type'] == '+':
+            action_res = round(coef * value, 2)
+        elif details['type'] == '-':
+            action_res = round(coef * -value, 2)
+        if action in ['stuns', 'hero_healing']:
+            action_res = action_res if action_res <= 5 else 5
+        result += action_res
+        result_dict.update({action: action_res})
+
+    win_bonus = 0
+
+    if player_data.get('win', 0):
+        win_bonus = abs(result) * 0.1
+
+    result_dict.update({'win_bonus': round(win_bonus, 2)})
+
+    result += win_bonus
+    result_dict.update({'TOTAL': round(result, 2)})
+    return result_dict
 
 
 def get_result(match_info):
     match_data = match_info.data
     player_results = {}
     players = match_data.get('players', [])
-    match_datetime = None
+    match_dtime = None
 
     for player in players:
         account_id = player.get('account_id')
-        match_datetime = datetime.fromtimestamp(player.get('start_time')) if player.get('start_time') else match_datetime
+        match_dtime = datetime.fromtimestamp(player.get('start_time')) if player.get('start_time') else match_dtime
         if account_id:
             result = result_from_player_data(player)
             player_results[account_id] = result
-    return player_results, match_datetime
+    return player_results, match_dtime
 

@@ -5,6 +5,8 @@ from api.views import CompetitionViewSet, PlayerViewSet, FantasyTeamViewSet, Fan
 
 router = DefaultRouter()
 router.register('user', UserViewSet, basename='user'),
+router.register('app-report', UserViewSet, basename='app-report'),
+
 router.register('competition', CompetitionViewSet, basename='competition'),
 router.register('competition-tour', CompetitionTourViewSet, basename='competition-tour'),
 router.register('player', PlayerViewSet, basename='player'),

@@ -8,7 +8,8 @@ from djoser.serializers import UserCreateSerializer
 from rest_framework.authtoken.models import Token
 
 
-from users.models import CustomUser
+from users.models import CustomUser, AppErrorReport
+
 User = get_user_model()
 
 
@@ -41,6 +42,12 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUser
         fields = ['id', 'username']
+
+
+class AppErrorReportSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AppErrorReport
+        fields = ['user', 'msg']
 
 
 class CompetitionTourSerializer(serializers.ModelSerializer):

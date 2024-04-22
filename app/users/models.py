@@ -17,3 +17,13 @@ class CustomUser(AbstractUser):
 
     def str(self):
         return self.email or self.username
+
+
+class AppErrorReport(models.Model):
+    user = models.ForeignKey(to=CustomUser, blank=True, null=True, on_delete=models.SET_NULL)
+    msg = models.TextField(blank=True, null=True)
+    created = models.DateTimeField(auto_now_add=True)
+
+    def str(self):
+        return f"{self.created} - {self.msg}"
+
