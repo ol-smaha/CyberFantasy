@@ -2,12 +2,13 @@ import random
 import time
 from datetime import datetime
 
+from django.conf import settings
 
 from celery import shared_task
 from api.connectors import DotaApiConnector
-from fantasy.constants import CompetitionStatusEnum, GameRoleEnum
+from fantasy.constants import CompetitionStatusEnum, GameRoleEnum, MatchSeriesBOFormatEnum
 from fantasy.models import Competition, Match, Player, PlayerMatchResult, CompetitionTour, FantasyPlayer, \
-    FantasyTeam, FantasyTeamTour
+    FantasyTeam, FantasyTeamTour, MatchSeries, Team
 
 api_connector = DotaApiConnector()
 
@@ -24,25 +25,69 @@ def parse_matches_for_competition(compt_dota_ids):
     print('parse_matches_for_competition STARTED')
     competitions = Competition.objects.filter(dota_id__in=compt_dota_ids)
     for competition in competitions:
-        teams = competition.team.all()
-        for team in teams:
-            matches_ids = api_connector.get_matches_id(team_id=team.dota_id, competition_id=competition.dota_id)
-            for match_id in matches_ids:
-                if not Match.objects.filter(dota_id=match_id).exists():
-                    Match.objects.create(
-                        dota_id=match_id,
-                        competition=competition,
+        matches_data = api_connector.get_league_matches_id(competition_id=competition.dota_id)
+        for match_data in matches_data:
+            match_dota_id = match_data.get('match_id')
+            series_dota_id = match_data.get('series_id')
+            series_type = match_data.get('series_type')
+            start_time = match_data.get('start_time')
+            radiant_team_id = match_data.get('radiant_team_id')
+            dire_team_id = match_data.get('dire_team_id')
+
+            if match_dota_id and not Match.objects.filter(dota_id=match_dota_id).exists():
+                match_datetime = datetime.fromtimestamp(start_time) if start_time else None
+                competition_tour = CompetitionTour.objects.filter(
+                    competition=competition,
+                    start_date__lte=match_datetime,
+                    end_date__gte=match_datetime,
+                ).first()
+
+                radiant_team = None
+                dire_team = None
+                if Team.objects.filter(dota_id=radiant_team_id).exists():
+                    radiant_team = Team.objects.get(dota_id=radiant_team_id)
+                if Team.objects.filter(dota_id=dire_team_id).exists():
+                    dire_team = Team.objects.get(dota_id=dire_team_id)
+
+                match_obj = Match.objects.create(
+                    dota_id=match_dota_id,
+                    competition=competition,
+                    competition_tour=competition_tour,
+                    team_radiant=radiant_team,
+                    team_dire=dire_team,
+                    datetime=match_datetime,
+                )
+
+                if series_dota_id and series_type:
+                    series_obj, _ = MatchSeries.objects.get_or_create(
+                        dota_id=series_dota_id,
+                        defaults={
+                            "bo_format": MatchSeriesBOFormatEnum.get_format(series_type),
+                            "competition": competition,
+                            "competition_tour": competition_tour,
+                        }
                     )
+                    match_obj.series = series_obj
+
+                match_obj.is_filled = True
+                match_obj.save()
+
     print('parse_matches_for_competition FINISHED')
+
+
+def is_parse_match_data_full(data):
+    need_keys = settings.FANTASY_FORMULA.keys()
+    player_data = data.get('players', [{}])[0]
+    exists_keys = player_data.keys()
+    return set(need_keys).issubset(exists_keys)
 
 
 def parse_matches_data(match_dota_ids):
     print('parse_matches_data STARTED')
     for match_id in match_dota_ids:
-        print(match_id)
         data = api_connector.get_match_info(match_id)
-        print(bool(data))
-        if data:
+        print(f'Match {match_id} checking is full data: {is_parse_match_data_full(data)}')
+        if data and is_parse_match_data_full(data):
             Match.objects.filter(dota_id=match_id).update(is_parsed=True, data=data)
         time.sleep(1)
     print('parse_matches_data FINISHED')
@@ -51,19 +96,12 @@ def parse_matches_data(match_dota_ids):
 def rate_matches(match_dota_ids):
     print('rate_matches STARTED')
     matches = Match.objects.filter(dota_id__in=match_dota_ids)
-    print(matches)
     for match in matches:
-        result, match_datetime = get_result(match)
-        competition_tour = CompetitionTour.objects.filter(
-            competition=match.competition,
-            start_date__lte=match_datetime,
-            end_date__gte=match_datetime,
-        ).first()
-        match.result_data = result
-        match.datetime = match_datetime
-        match.competition_tour = competition_tour
-        match.is_rated = True
-        match.save()
+        if match.data:
+            result = get_result(match)
+            match.result_data = result
+            match.is_rated = True
+            match.save()
     print('rate_matches FINISHED')
 
 
@@ -72,7 +110,6 @@ def save_results_to_player(match_dota_ids):
     matches = Match.objects.filter(dota_id__in=match_dota_ids)
     for match in matches:
         for account_id, result in match.result_data.items():
-            print(result)
             if Player.objects.filter(dota_id=account_id).exists():
                 player = Player.objects.get(dota_id=account_id)
                 obj, created = PlayerMatchResult.objects.update_or_create(
@@ -80,9 +117,22 @@ def save_results_to_player(match_dota_ids):
                     match=match,
                     defaults={"result": result.get('TOTAL', 0)},
                 )
-                print(obj, created)
         match.is_saved_to_players = True
         match.save()
+    print('save_results_to_player FINISHED')
+
+
+def recalculate_series_results(series_id):
+    print('save_results_to_player STARTED')
+    series_qs = MatchSeries.objects.filter(id__in=series_id)
+    for series in series_qs:
+        if series.bo_format == MatchSeriesBOFormatEnum.BO3:
+            matches = series.matches.all()
+            if matches.count() == 3:
+                for match in matches:
+                    pass
+                # average_result = sum([match.result])
+
     print('save_results_to_player FINISHED')
 
 
@@ -104,100 +154,30 @@ def dota_update():
     competitions = Competition.objects.filter(status=CompetitionStatusEnum.STARTED)
 
     for competition in competitions:
-        teams = competition.team.all()
-        for team in teams:
-            matches_ids = api_connector.get_matches_id(team_id=team.dota_id, competition_id=competition.dota_id)
-            for match_id in matches_ids:
-                if not Match.objects.filter(dota_id=match_id).exists():
-                    match_info = api_connector.get_match_info(match_id)
+        matches = api_connector.get_league_matches_id(competition_id=competition.dota_id)
 
-                    if match_info:
-                        Match.objects.create(
-                            dota_id=match_id,
-                            data=match_info
-                        )
+        for match_data in matches:
+            dota_id = match_data.get('match_id')
 
-                else:
-                    print(f"Match {match_id} already exists in MatchInfoDota for Dota competition")
+            if dota_id and not Match.objects.filter(dota_id=dota_id).exists():
+                match_info = api_connector.get_match_info(dota_id)
+
+                if match_info:
+                    Match.objects.create(
+                        dota_id=dota_id,
+                        data=match_info
+                    )
+
+            else:
+                print(f"Match {dota_id} already exists in MatchInfoDota for Dota competition")
 
 
 def result_from_player_data(player_data):
     result = 0
     result_dict = {}
-    points = {
-        'kills': {
-            'type': '+',
-            'coef': {'core': 2, 'support': 3},
-        },
-        'deaths': {
-            'type': '-',
-            'coef': {'core': 2, 'support': 1.5},
-        },
-        'assists': {
-            'type': '+',
-            'coef': {'core': 1, 'support': 1},
-        },
-        'last_hits': {
-            'type': '+',
-            'coef': {'core': 0.01, 'support': 0.02},
-        },
-        'denies': {
-            'type': '+',
-            'coef': {'core': 0.02, 'support': 0.04},
-        },
-        'hero_damage': {
-            'type': '+',
-            'coef': {'core': 0.0002, 'support': 0.0002},
-        },
-        'tower_damage': {
-            'type': '+',
-            'coef': {'core': 0.0002, 'support': 0.0002},
-        },
-        'camps_stacked': {
-            'type': '+',
-            'coef': {'core': 0.15, 'support': 0.25},
-        },
-        'rune_pickups': {
-            'type': '+',
-            'coef': {'core': 0.1, 'support': 0.1},
-        },
-        'obs_placed': {
-            'type': '+',
-            'coef': {'core': 0.1, 'support': 0.1},
-        },
-        'sen_placed': {
-            'type': '+',
-            'coef': {'core': 0.15, 'support': 0.2},
-        },
-        'observer_kills': {
-            'type': '+',
-            'coef': {'core': 0.1, 'support': 0.1},
-        },
-        'sentry_kills': {
-            'type': '+',
-            'coef': {'core': 0.15, 'support': 0.2},
-        },
-        'courier_kills': {
-            'type': '+',
-            'coef': {'core': 1.5, 'support': 1.5},
-        },
-        'stuns': {
-            'type': '+',
-            'coef': {'core': 0.1, 'support': 0.1},
-        },
-        'hero_healing': {
-            'type': '+',
-            'coef': {'core': 0.001, 'support': 0.0015},
-        },
-        'buyback_count': {
-            'type': '-',
-            'coef': {'core': 1.5, 'support': 1.5},
-        },
-        'teamfight_participation': {
-            'type': '+',
-            'coef': {'core': 5, 'support': 5},
-        },
-    }
+
+    if not Player.objects.filter(dota_id=player_data.get('account_id')).exists():
+        return {}
 
     player = Player.objects.get(dota_id=player_data.get('account_id'))
     result_dict.update({'NICKNAME': player.nickname, 'TOTAL': result})
@@ -207,7 +187,7 @@ def result_from_player_data(player_data):
     else:
         pl_role = 'support'
 
-    for action, details in points.items():
+    for action, details in settings.FANTASY_FORMULA.items():
         value = float(player_data.get(action)) if player_data.get(action) is not None else 0
         coef = details.get('coef', {}).get(pl_role, 0)
         action_res = 0
@@ -237,13 +217,11 @@ def get_result(match_info):
     match_data = match_info.data
     player_results = {}
     players = match_data.get('players', [])
-    match_dtime = None
 
     for player in players:
         account_id = player.get('account_id')
-        match_dtime = datetime.fromtimestamp(player.get('start_time')) if player.get('start_time') else match_dtime
         if account_id:
             result = result_from_player_data(player)
             player_results[account_id] = result
-    return player_results, match_dtime
+    return player_results
 

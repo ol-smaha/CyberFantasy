@@ -194,3 +194,78 @@ CACHES = {
 
 
 DATA_UPLOAD_MAX_NUMBER_FIELDS = 10**5
+
+FANTASY_FORMULA = {
+    'kills': {
+        'type': '+',
+        'coef': {'core': 2, 'support': 3},
+    },
+    'deaths': {
+        'type': '-',
+        'coef': {'core': 2, 'support': 1.5},
+    },
+    'assists': {
+        'type': '+',
+        'coef': {'core': 1, 'support': 1},
+    },
+    'last_hits': {
+        'type': '+',
+        'coef': {'core': 0.01, 'support': 0.02},
+    },
+    'denies': {
+        'type': '+',
+        'coef': {'core': 0.02, 'support': 0.04},
+    },
+    'hero_damage': {
+        'type': '+',
+        'coef': {'core': 0.0002, 'support': 0.0002},
+    },
+    'tower_damage': {
+        'type': '+',
+        'coef': {'core': 0.0002, 'support': 0.0002},
+    },
+    'camps_stacked': {
+        'type': '+',
+        'coef': {'core': 0.15, 'support': 0.25},
+    },
+    'rune_pickups': {
+        'type': '+',
+        'coef': {'core': 0.1, 'support': 0.1},
+    },
+    'obs_placed': {
+        'type': '+',
+        'coef': {'core': 0.1, 'support': 0.1},
+    },
+    'sen_placed': {
+        'type': '+',
+        'coef': {'core': 0.15, 'support': 0.2},
+    },
+    'observer_kills': {
+        'type': '+',
+        'coef': {'core': 0.1, 'support': 0.1},
+    },
+    'sentry_kills': {
+        'type': '+',
+        'coef': {'core': 0.15, 'support': 0.2},
+    },
+    'courier_kills': {
+        'type': '+',
+        'coef': {'core': 1.5, 'support': 1.5},
+    },
+    'stuns': {
+        'type': '+',
+        'coef': {'core': 0.1, 'support': 0.1},
+    },
+    'hero_healing': {
+        'type': '+',
+        'coef': {'core': 0.001, 'support': 0.0015},
+    },
+    'buyback_count': {
+        'type': '-',
+        'coef': {'core': 1.5, 'support': 1.5},
+    },
+    'teamfight_participation': {
+        'type': '+',
+        'coef': {'core': 5, 'support': 5},
+    },
+}

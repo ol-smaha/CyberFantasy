@@ -18,6 +18,7 @@ class UserCreateByEmailSerializer(UserCreateSerializer):
 
     def perform_create(self, validated_data):
         username = validated_data.get('username')
+
         if username:
             validated_data.update({'username': validated_data.get('username')})
         else:
@@ -27,7 +28,6 @@ class UserCreateByEmailSerializer(UserCreateSerializer):
             user = User.objects.create_user(**validated_data)
             token = Token.objects.create(user=user)
             validated_data.update({'token': token})
-        print(validated_data)
         return user
 
     class Meta(UserCreateSerializer.Meta):

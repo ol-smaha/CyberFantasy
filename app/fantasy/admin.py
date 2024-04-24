@@ -6,9 +6,9 @@ from django_json_widget.widgets import JSONEditorWidget
 from django.contrib.auth.admin import UserAdmin
 
 from fantasy.models import Competition, Team, Player, FantasyTeam, FantasyPlayer, Match, \
-    PlayerMatchResult, CompetitionTour, FantasyTeamTour
-from fantasy.tasks import dota_update, result_from_player_data, get_result, \
-    parse_matches_for_competition, parse_matches_data, rate_matches, save_results_to_player, update_fantasy_results
+    PlayerMatchResult, CompetitionTour, FantasyTeamTour, MatchSeries
+from fantasy.tasks import parse_matches_for_competition, parse_matches_data, rate_matches, save_results_to_player, \
+    update_fantasy_results
 from users.models import CustomUser
 
 
@@ -32,6 +32,11 @@ class FantasyTeamTourInline(admin.StackedInline):
     extra = 1
 
 
+class FantasyPlayerInline(admin.StackedInline):
+    model = FantasyPlayer
+    extra = 1
+
+
 class PlayerInline(admin.StackedInline):
     model = Player
     extra = 1
@@ -43,12 +48,20 @@ class PlayerMatchResultInline(admin.StackedInline):
     raw_id_fields = ('match',)
 
 
+class MatchInline(admin.TabularInline):
+    model = Match
+    extra = 0
+    fields = ['dota_id', 'team_radiant', 'team_dire']
+    readonly_fields = ['dota_id', 'team_radiant', 'team_dire']
+    show_change_link = True
+
+
 class CompetitionAdmin(admin.ModelAdmin):
     list_display = ['name', 'date_start', 'date_finish', 'status', 'icon']
     actions = ('parse_matches_ids', )
     inlines = [CompetitionTourInline]
 
-    @admin.action(description='Parse Match IDs')
+    @admin.action(description='1. Parse Match IDs')
     def parse_matches_ids(self, request, queryset):
         dota_ids = queryset.values_list('dota_id', flat=True)
         t = threading.Thread(target=parse_matches_for_competition, args=(dota_ids, ))
@@ -69,13 +82,8 @@ class PlayerAdmin(admin.ModelAdmin):
     inlines = [PlayerMatchResultInline]
 
 
-class FantasyPlayerInline(admin.StackedInline):
-    model = FantasyPlayer
-    extra = 1
-
-
 class FantasyTeamAdmin(admin.ModelAdmin):
-    list_display = ['name_extended', 'user', 'competition', 'result']
+    list_display = ['user', 'competition', 'result']
     # readonly_fields = ['results_by_tour_string']
     list_filter = ['competition', 'user']
     inlines = [FantasyTeamTourInline]
@@ -91,32 +99,39 @@ class FantasyPlayerAdmin(admin.ModelAdmin):
     list_display = ['player', 'fantasy_team_tour', 'result']
 
 
-class MatchInfoDotaAdmin(admin.ModelAdmin):
-    list_display = ['dota_id', 'competition', 'competition_tour', 'datetime',
-                    'is_parsed', 'is_rated', 'is_saved_to_players']
-    list_filter = ['is_parsed', 'is_rated', 'is_saved_to_players', 'competition']
+class MatchSeriesAdmin(admin.ModelAdmin):
+    list_display = ['dota_id',]
     search_fields = ['dota_id']
+    inlines = [MatchInline]
+
+
+class MatchAdmin(admin.ModelAdmin):
+    list_display = ['full_name', 'dota_id', 'series', 'datetime',
+                    'is_parsed', 'is_filled', 'is_rated', 'is_saved_to_players']
+    list_filter = ['is_parsed', 'is_filled', 'is_rated', 'is_saved_to_players', 'competition']
+    search_fields = ['dota_id', 'series__dota_id', 'team_radiant__dota_id', 'team_radiant__dota_id',
+                     'team_radiant__name', 'team_dire__name']
 
     formfield_overrides = {
         models.JSONField: {'widget': JSONEditorWidget},
     }
     actions = ('parse_matches_data', 'rate_matches_data', 'save_result_to_players')
 
-    @admin.action(description='Parse Match Data')
+    @admin.action(description='2. Parse Match Data')
     def parse_matches_data(self, request, queryset):
         dota_ids = queryset.values_list('dota_id', flat=True)
         t = threading.Thread(target=parse_matches_data, args=(dota_ids, ))
         t.daemon = True
         t.start()
 
-    @admin.action(description='Rate Match Data')
+    @admin.action(description='3. Rate Match Data')
     def rate_matches_data(self, request, queryset):
         dota_ids = queryset.values_list('dota_id', flat=True)
         t = threading.Thread(target=rate_matches, args=(dota_ids, ))
         t.daemon = True
         t.start()
 
-    @admin.action(description='Save Result To Players')
+    @admin.action(description='4. Save Result To Players')
     def save_result_to_players(self, request, queryset):
         dota_ids = queryset.values_list('dota_id', flat=True)
         t = threading.Thread(target=save_results_to_player, args=(dota_ids, ))
@@ -134,7 +149,7 @@ class CompetitionTourAdmin(admin.ModelAdmin):
     list_display = ['name', 'start_date', 'end_date', 'competition']
     actions = ('update_fantasy_results',)
 
-    @admin.action(description='Update Fantasy Results')
+    @admin.action(description='5. Update Fantasy Results')
     def update_fantasy_results(self, request, queryset):
         ids = queryset.values_list('id', flat=True)
         t = threading.Thread(target=update_fantasy_results, args=(ids,))
@@ -149,7 +164,8 @@ admin.site.register(Player, PlayerAdmin)
 admin.site.register(FantasyTeam, FantasyTeamAdmin)
 admin.site.register(FantasyTeamTour, FantasyTeamTourAdmin)
 admin.site.register(FantasyPlayer, FantasyPlayerAdmin)
-admin.site.register(Match, MatchInfoDotaAdmin)
+admin.site.register(MatchSeries, MatchSeriesAdmin)
+admin.site.register(Match, MatchAdmin)
 admin.site.register(PlayerMatchResult, PlayerMatchResultAdmin)
 admin.site.register(CompetitionTour, CompetitionTourAdmin)
 

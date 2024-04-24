@@ -1,3 +1,5 @@
+from time import sleep
+
 import requests
 
 
@@ -36,10 +38,25 @@ class DotaApiConnector:
 
         return all_matches
 
+    def get_league_matches_id(self, competition_id):
+        url = f'{self.BASE_URL}leagues/{competition_id}/matches'
+        response = self.get(url=url)
+        if response.ok and response.json():
+            return response.json()
+        else:
+            return {}
+
     def get_match_info(self, id_match):
         url = f'{self.BASE_URL}matches/{id_match}'
         response = self.get(url=url)
-
         if response.ok:
-            data = response.json()
-            return data
+            return response.json()
+
+        counter = 10
+        while counter > 0 and not response.ok:
+            counter -= 1
+            sleep(1)
+            response = self.get(url=url)
+            if response.ok:
+                return response.json()
+        return {}
