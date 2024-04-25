@@ -7,8 +7,8 @@ from django.conf import settings
 from celery import shared_task
 from api.connectors import DotaApiConnector
 from fantasy.constants import CompetitionStatusEnum, GameRoleEnum, MatchSeriesBOFormatEnum
-from fantasy.models import Competition, Match, Player, PlayerMatchResult, CompetitionTour, FantasyPlayer, \
-    FantasyTeam, FantasyTeamTour, MatchSeries, Team
+from fantasy.models import (Competition, Match, Player, PlayerMatchResult, CompetitionTour, MatchSeries, Team,
+                            IgnoreMatch)
 
 api_connector = DotaApiConnector()
 
@@ -34,6 +34,11 @@ def parse_matches_for_competition(compt_dota_ids):
             radiant_team_id = match_data.get('radiant_team_id')
             dire_team_id = match_data.get('dire_team_id')
 
+            ignore_matches = IgnoreMatch.objects.all().values_list('dota_id', flat=True)
+
+            if str(match_dota_id) in ignore_matches:
+                continue
+
             if match_dota_id and not Match.objects.filter(dota_id=match_dota_id).exists():
                 match_datetime = datetime.fromtimestamp(start_time) if start_time else None
                 competition_tour = CompetitionTour.objects.filter(
@@ -58,7 +63,7 @@ def parse_matches_for_competition(compt_dota_ids):
                     datetime=match_datetime,
                 )
 
-                if series_dota_id and series_type:
+                if series_dota_id and series_type is not None:
                     series_obj, _ = MatchSeries.objects.get_or_create(
                         dota_id=series_dota_id,
                         defaults={
@@ -119,20 +124,6 @@ def save_results_to_player(match_dota_ids):
                 )
         match.is_saved_to_players = True
         match.save()
-    print('save_results_to_player FINISHED')
-
-
-def recalculate_series_results(series_id):
-    print('save_results_to_player STARTED')
-    series_qs = MatchSeries.objects.filter(id__in=series_id)
-    for series in series_qs:
-        if series.bo_format == MatchSeriesBOFormatEnum.BO3:
-            matches = series.matches.all()
-            if matches.count() == 3:
-                for match in matches:
-                    pass
-                # average_result = sum([match.result])
-
     print('save_results_to_player FINISHED')
 
 

@@ -206,7 +206,7 @@ class MatchSeries(models.Model):
 class Match(models.Model):
     dota_id = models.CharField(max_length=128, default='', unique=True)
     series = models.ForeignKey(to=MatchSeries, related_name='matches',
-                               blank=True, null=True, on_delete=models.SET_NULL)
+                               blank=True, null=True, on_delete=models.CASCADE)
     data = models.JSONField(null=True, blank=True)
     result_data = models.JSONField(null=True, blank=True)
     competition = models.ForeignKey(to=Competition, on_delete=models.CASCADE,
@@ -267,6 +267,10 @@ class PlayerMatchResult(models.Model):
         return f'{self.player.nickname} - {self.match}'
 
 
+class IgnoreMatch(models.Model):
+    dota_id = models.CharField(max_length=128, default='', unique=True)
 
+    def __str__(self):
+        return self.dota_id
 
 
