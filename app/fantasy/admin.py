@@ -7,7 +7,7 @@ from django.contrib.auth.admin import UserAdmin
 
 from fantasy.models import Competition, Team, Player, FantasyTeam, FantasyPlayer, Match, \
     PlayerMatchResult, CompetitionTour, FantasyTeamTour, MatchSeries, IgnoreMatch
-from fantasy.tasks import parse_matches_for_competition, parse_matches_data, rate_matches, save_results_to_player, \
+from fantasy.tasks import competitions_parse_match_ids, parse_matches_data, rate_matches, save_results_to_player, \
     update_fantasy_results
 from users.models import CustomUser
 
@@ -64,7 +64,7 @@ class CompetitionAdmin(admin.ModelAdmin):
     @admin.action(description='1. Parse Match IDs')
     def parse_matches_ids(self, request, queryset):
         dota_ids = queryset.values_list('dota_id', flat=True)
-        t = threading.Thread(target=parse_matches_for_competition, args=(dota_ids, ))
+        t = threading.Thread(target=competitions_parse_match_ids, args=(dota_ids, ))
         t.daemon = True
         t.start()
 
@@ -100,15 +100,15 @@ class FantasyPlayerAdmin(admin.ModelAdmin):
 
 
 class MatchSeriesAdmin(admin.ModelAdmin):
-    list_display = ['dota_id',]
+    list_display = ['dota_id', 'competition', 'competition_tour']
     search_fields = ['dota_id']
     inlines = [MatchInline]
 
 
 class MatchAdmin(admin.ModelAdmin):
     list_display = ['full_name', 'dota_id', 'series', 'datetime',
-                    'is_parsed', 'is_filled', 'is_rated', 'is_saved_to_players']
-    list_filter = ['is_parsed', 'is_filled', 'is_rated', 'is_saved_to_players', 'competition']
+                    'is_filled', 'is_parsed', 'is_rated', 'is_saved_to_players']
+    list_filter = ['is_filled', 'is_parsed', 'is_rated', 'is_saved_to_players', 'competition']
     search_fields = ['dota_id', 'series__dota_id', 'team_radiant__dota_id', 'team_radiant__dota_id',
                      'team_radiant__name', 'team_dire__name']
 

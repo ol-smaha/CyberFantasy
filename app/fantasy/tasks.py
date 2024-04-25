@@ -6,6 +6,7 @@ from django.conf import settings
 
 from celery import shared_task
 from api.connectors import DotaApiConnector
+from core.celery_app import app
 from fantasy.constants import CompetitionStatusEnum, GameRoleEnum, MatchSeriesBOFormatEnum
 from fantasy.models import (Competition, Match, Player, PlayerMatchResult, CompetitionTour, MatchSeries, Team,
                             IgnoreMatch)
@@ -13,16 +14,52 @@ from fantasy.models import (Competition, Match, Player, PlayerMatchResult, Compe
 api_connector = DotaApiConnector()
 
 
-@shared_task()
-def parse_data_matches_from_dota_api():
-    print('*'*20)
-    print('- START PARSING OPEN DOTA')
-    dota_update()
-    print('- END PARSING OPEN DOTA')
+@shared_task(name='1. Збір та групування матчів.')
+def competitions_parse_match_ids_celery_task():
+    print('--- START competitions_parse_match_ids_task')
+    obj_ids = Competition.objects.filter(status=CompetitionStatusEnum.STARTED).values_list('dota_id', flat=True)
+    print(f'В обробку йде: {obj_ids.count()} ліг.')
+    competitions_parse_match_ids(obj_ids)
+    print('--- END competitions_parse_match_ids_task')
 
 
-def parse_matches_for_competition(compt_dota_ids):
-    print('parse_matches_for_competition STARTED')
+@shared_task(name='2. Детальний парсинг матчів.')
+def parse_matches_data_celery_task():
+    print('--- START parse_matches_data_celery_task')
+    obj_ids = Match.objects.filter(is_parsed=False).values_list('dota_id', flat=True)
+    print(f'В обробку йде: {obj_ids.count()} матчів.')
+    parse_matches_data(obj_ids)
+    print('--- END parse_matches_data_celery_task')
+
+
+@shared_task(name='3. Оцінка матчів та формування результату гравців.')
+def rate_matches_celery_task():
+    print('--- START rate_matches_celery_task')
+    obj_ids = Match.objects.filter(is_parsed=True, is_rated=False).values_list('dota_id', flat=True)
+    print(f'В обробку йде: {obj_ids.count()} матчів.')
+    rate_matches(obj_ids)
+    print('--- END rate_matches_celery_task')
+
+
+@shared_task(name='4. Збереження результатів гравців в систему.')
+def save_results_to_player_celery_task():
+    print('--- START save_results_to_player_celery_task')
+    obj_ids = Match.objects.filter(is_rated=True, is_saved_to_players=False).values_list('dota_id', flat=True)
+    print(f'В обробку йде: {obj_ids.count()} матчів.')
+    save_results_to_player(obj_ids)
+    print('--- END save_results_to_player_celery_task')
+
+
+@shared_task(name='5. Оновлення фентезі балів.')
+def update_fantasy_results_celery_task():
+    print('--- START update_fantasy_results')
+    obj_ids = CompetitionTour.objects.filter(status='ongoing').values_list('id', flat=True)
+    print(f'В обробку йде: {obj_ids.count()} ігрових турів.')
+    update_fantasy_results(obj_ids)
+    print('--- END update_fantasy_results')
+
+
+def competitions_parse_match_ids(compt_dota_ids):
     competitions = Competition.objects.filter(dota_id__in=compt_dota_ids)
     for competition in competitions:
         matches_data = api_connector.get_league_matches_id(competition_id=competition.dota_id)
@@ -77,8 +114,6 @@ def parse_matches_for_competition(compt_dota_ids):
                 match_obj.is_filled = True
                 match_obj.save()
 
-    print('parse_matches_for_competition FINISHED')
-
 
 def is_parse_match_data_full(data):
     need_keys = settings.FANTASY_FORMULA.keys()
@@ -88,18 +123,14 @@ def is_parse_match_data_full(data):
 
 
 def parse_matches_data(match_dota_ids):
-    print('parse_matches_data STARTED')
     for match_id in match_dota_ids:
         data = api_connector.get_match_info(match_id)
-        print(f'Match {match_id} checking is full data: {is_parse_match_data_full(data)}')
         if data and is_parse_match_data_full(data):
             Match.objects.filter(dota_id=match_id).update(is_parsed=True, data=data)
         time.sleep(1)
-    print('parse_matches_data FINISHED')
 
 
 def rate_matches(match_dota_ids):
-    print('rate_matches STARTED')
     matches = Match.objects.filter(dota_id__in=match_dota_ids)
     for match in matches:
         if match.data:
@@ -107,11 +138,9 @@ def rate_matches(match_dota_ids):
             match.result_data = result
             match.is_rated = True
             match.save()
-    print('rate_matches FINISHED')
 
 
 def save_results_to_player(match_dota_ids):
-    print('save_results_to_player STARTED')
     matches = Match.objects.filter(dota_id__in=match_dota_ids)
     for match in matches:
         for account_id, result in match.result_data.items():
@@ -124,11 +153,9 @@ def save_results_to_player(match_dota_ids):
                 )
         match.is_saved_to_players = True
         match.save()
-    print('save_results_to_player FINISHED')
 
 
 def update_fantasy_results(competition_tour_ids):
-    print('update_fantasy_results STARTED')
     qs = CompetitionTour.objects.filter(id__in=competition_tour_ids)
     for tour in qs:
         fan_teams_tour = tour.fantasy_teams.all()
@@ -137,30 +164,6 @@ def update_fantasy_results(competition_tour_ids):
                 fan_player.set_result()
             fan_team.set_result()
             fan_team.fantasy_team.set_result()
-
-    print('update_fantasy_results FINISHED')
-
-
-def dota_update():
-    competitions = Competition.objects.filter(status=CompetitionStatusEnum.STARTED)
-
-    for competition in competitions:
-        matches = api_connector.get_league_matches_id(competition_id=competition.dota_id)
-
-        for match_data in matches:
-            dota_id = match_data.get('match_id')
-
-            if dota_id and not Match.objects.filter(dota_id=dota_id).exists():
-                match_info = api_connector.get_match_info(dota_id)
-
-                if match_info:
-                    Match.objects.create(
-                        dota_id=dota_id,
-                        data=match_info
-                    )
-
-            else:
-                print(f"Match {dota_id} already exists in MatchInfoDota for Dota competition")
 
 
 def result_from_player_data(player_data):
