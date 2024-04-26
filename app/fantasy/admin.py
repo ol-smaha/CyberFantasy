@@ -108,7 +108,7 @@ class MatchSeriesAdmin(admin.ModelAdmin):
 class MatchAdmin(admin.ModelAdmin):
     list_display = ['full_name', 'dota_id', 'series', 'datetime',
                     'is_filled', 'is_parsed', 'is_rated', 'is_saved_to_players']
-    list_filter = ['is_filled', 'is_parsed', 'is_rated', 'is_saved_to_players', 'competition']
+    list_filter = ['is_filled', 'is_parsed', 'is_rated', 'is_saved_to_players', 'competition', 'competition_tour']
     search_fields = ['dota_id', 'series__dota_id', 'team_radiant__dota_id', 'team_radiant__dota_id',
                      'team_radiant__name', 'team_dire__name']
 

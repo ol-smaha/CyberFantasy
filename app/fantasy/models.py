@@ -183,7 +183,7 @@ class FantasyPlayer(models.Model):
             else:
                 series_tot_res = PlayerMatchResult.objects.filter(
                     player=self.player,
-                    match__in=self.fantasy_team_tour.competition_tour.matches.all(),
+                    match__in=matches,
                 ).aggregate(finally_res=Sum('result'))['finally_res']
                 total_result += series_tot_res
 
