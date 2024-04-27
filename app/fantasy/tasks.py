@@ -122,10 +122,12 @@ def is_parse_match_data_full(data):
     return set(need_keys).issubset(exists_keys)
 
 
-def parse_matches_data(match_dota_ids):
+def parse_matches_data(match_dota_ids, parse_full=True):
     for match_id in match_dota_ids:
         data = api_connector.get_match_info(match_id)
-        if data and is_parse_match_data_full(data):
+        if data:
+            if parse_full and not is_parse_match_data_full(data):
+                continue
             Match.objects.filter(dota_id=match_id).update(is_parsed=True, data=data)
         time.sleep(1)
 

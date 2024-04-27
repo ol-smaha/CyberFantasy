@@ -115,12 +115,19 @@ class MatchAdmin(admin.ModelAdmin):
     formfield_overrides = {
         models.JSONField: {'widget': JSONEditorWidget},
     }
-    actions = ('parse_matches_data', 'rate_matches_data', 'save_result_to_players')
+    actions = ('parse_matches_data', 'rate_matches_data', 'save_result_to_players', 'parse_matches_short_data')
 
-    @admin.action(description='2. Parse Match Data')
+    @admin.action(description='2. Parse Full Match Data')
     def parse_matches_data(self, request, queryset):
         dota_ids = queryset.values_list('dota_id', flat=True)
         t = threading.Thread(target=parse_matches_data, args=(dota_ids, ))
+        t.daemon = True
+        t.start()
+
+    @admin.action(description='2. *** Parse Short Match Data')
+    def parse_matches_short_data(self, request, queryset):
+        dota_ids = queryset.values_list('dota_id', flat=True)
+        t = threading.Thread(target=parse_matches_data, args=(dota_ids, False))
         t.daemon = True
         t.start()
 
