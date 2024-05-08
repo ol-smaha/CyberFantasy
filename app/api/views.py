@@ -1,4 +1,5 @@
-from django.db.models import Sum
+from django.db.models import Sum, Window, F
+from django.db.models.functions import Rank
 from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import TokenCreateView
 from rest_framework import mixins
@@ -9,10 +10,11 @@ from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 
 from api.filters import PlayersFilterSet
-from api.serializers import CompetitionSerializer, PlayerSerializer, FantasyTeamSerializer, FantasyPlayerSerializer, \
-    FantasyTeamCreateSerializer, FantasyPlayerCreateSerializer, FantasyTeamRatingSerializer, UserSerializer, \
+from api.serializers import CompetitionSerializerShort, PlayerSerializer, FantasyTeamSerializer, FantasyPlayerSerializer, \
+    FantasyTeamCreateSerializer, FantasyPlayerCreateSerializer, FantasyTeamTourRatingSerializer, UserSerializer, \
     CompetitionEditStatusSerializer, CompetitionTourSerializer, FantasyTeamTourSerializer, \
-    FantasyTeamTourCreateSerializer, AppErrorReportSerializer
+    FantasyTeamTourCreateSerializer, AppErrorReportSerializer, FantasyTeamRatingSerializer, \
+    CompetitionSerializerWithTours
 
 from fantasy.models import Competition, Player, FantasyTeam, FantasyPlayer, CompetitionTour, FantasyTeamTour
 from djoser import utils
@@ -38,8 +40,14 @@ class CompetitionViewSet(mixins.ListModelMixin,
                          mixins.RetrieveModelMixin,
                          GenericViewSet):
     queryset = Competition.objects.all()
-    serializer_class = CompetitionSerializer
+    serializer_class = CompetitionSerializerWithTours
     permission_classes = [IsAuthenticated]
+
+    def get_serializer_class(self):
+        if self.action in ['list']:
+            return CompetitionSerializerShort
+        else:
+            return self.serializer_class
 
     @action(detail=True, methods=['GET'])
     def rating(self, request, pk=None):
@@ -48,7 +56,8 @@ class CompetitionViewSet(mixins.ListModelMixin,
         except Competition.DoesNotExist:
             return Response({"error": "Competition not found"}, status=404)
 
-        fantasy_teams = competition.fantasy_teams.all().order_by('-result')
+        fantasy_teams = (competition.fantasy_teams.all()
+                         .annotate(rank=Window(expression=Rank(), order_by=F('result').desc())))
         serializer = FantasyTeamRatingSerializer(fantasy_teams, many=True)
         return Response(serializer.data)
 
@@ -79,8 +88,9 @@ class CompetitionTourViewSet(mixins.ListModelMixin,
         except Competition.DoesNotExist:
             return Response({"error": "Competition not found"}, status=404)
 
-        fantasy_teams = tour.competition.fantasy_teams.all().order_by('-result')
-        serializer = FantasyTeamRatingSerializer(fantasy_teams, many=True)
+        fantasy_teams = (tour.fantasy_teams.all()
+                         .annotate(rank=Window(expression=Rank(), order_by=F('result').desc())))
+        serializer = FantasyTeamTourRatingSerializer(fantasy_teams, many=True)
         return Response(serializer.data)
 
 

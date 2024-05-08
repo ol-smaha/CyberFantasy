@@ -13,7 +13,6 @@ class Team(models.Model):
 
     name = models.CharField(max_length=64)
     short_name = models.CharField(max_length=8, null=True, blank=True)
-    icon = models.ImageField(upload_to='media/', null=True, blank=True)
     dota_id = models.CharField(max_length=128, default='', unique=True)
 
     def __str__(self):
@@ -25,7 +24,6 @@ class Competition(models.Model):
     date_start = models.DateField(null=True, blank=True)
     date_finish = models.DateField(null=True, blank=True)
     status = models.CharField(max_length=64, choices=CompetitionStatusEnum.choices())
-    icon = models.ImageField(upload_to='media/', null=True, blank=True)
     dota_id = models.CharField(max_length=128, default='', unique=True)
     team = models.ManyToManyField(to=Team, related_name='competitions')
     active_tour = models.OneToOneField(to='CompetitionTour', related_name='parent_competition',
@@ -74,7 +72,6 @@ class Player(models.Model):
     team = models.ForeignKey(to=Team, on_delete=models.SET_NULL,
                              related_name='players', null=True, blank=True)
     game_role = models.CharField(max_length=64, choices=GameRoleEnum.choices())
-    icon = models.ImageField(upload_to='media/', null=True, blank=True)
     cost = models.DecimalField(max_digits=4, decimal_places=2, default=0)
     dota_id = models.CharField(max_length=128, default='', unique=True)
 

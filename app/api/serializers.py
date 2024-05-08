@@ -57,12 +57,19 @@ class CompetitionTourSerializer(serializers.ModelSerializer):
                   'editing_start', 'editing_end', 'is_editing_allowed']
 
 
-class CompetitionSerializer(serializers.ModelSerializer):
+class CompetitionSerializerShort(serializers.ModelSerializer):
+
+    class Meta:
+        model = Competition
+        fields = ['id', 'name', 'date_start', 'date_finish', 'status']
+
+
+class CompetitionSerializerWithTours(serializers.ModelSerializer):
     tours = CompetitionTourSerializer(source='competition_tours', many=True)
 
     class Meta:
         model = Competition
-        fields = ['id', 'name', 'date_start', 'date_finish', 'status', 'icon', 'dota_id', 'active_tour', 'tours']
+        fields = ['id', 'name', 'date_start', 'date_finish', 'status', 'dota_id', 'active_tour', 'tours']
 
 
 class CompetitionEditStatusSerializer(serializers.ModelSerializer):
@@ -81,7 +88,7 @@ class CompetitionEditStatusSerializer(serializers.ModelSerializer):
 class TeamSerializer(serializers.ModelSerializer):
     class Meta:
         model = Team
-        fields = ['id', 'name', 'short_name', 'icon', 'dota_id']
+        fields = ['id', 'name', 'short_name', 'dota_id']
 
 
 class PlayerSerializer(serializers.ModelSerializer):
@@ -89,7 +96,7 @@ class PlayerSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Player
-        fields = ['id', 'nickname', 'team', 'game_role', 'icon', 'cost']
+        fields = ['id', 'nickname', 'team', 'game_role', 'cost']
 
 
 class PlayerMatchResultSerializer(serializers.ModelSerializer):
@@ -114,7 +121,7 @@ class FantasyPlayerCreateSerializer(serializers.ModelSerializer):
 
 
 class FantasyTeamSerializer(serializers.ModelSerializer):
-    competition = CompetitionSerializer()
+    competition = CompetitionSerializerShort()
 
     class Meta:
         model = FantasyTeam
@@ -132,10 +139,20 @@ class FantasyTeamCreateSerializer(serializers.ModelSerializer):
 
 class FantasyTeamRatingSerializer(serializers.ModelSerializer):
     user = UserSerializer()
-
+    rank = serializers.IntegerField(read_only=True)
+    
     class Meta:
         model = FantasyTeam
-        fields = ['id', 'user',  'result']
+        fields = ['id', 'user', 'result', 'rank']
+
+
+class FantasyTeamTourRatingSerializer(serializers.ModelSerializer):
+    user = UserSerializer(source='fantasy_team.user')
+    rank = serializers.IntegerField(read_only=True)
+
+    class Meta:
+        model = FantasyTeamTour
+        fields = ['id', 'user',  'result', 'rank']
 
 
 class FantasyTeamTourSerializer(serializers.ModelSerializer):

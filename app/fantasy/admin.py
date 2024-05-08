@@ -57,7 +57,7 @@ class MatchInline(admin.TabularInline):
 
 
 class CompetitionAdmin(admin.ModelAdmin):
-    list_display = ['name', 'date_start', 'date_finish', 'status', 'icon']
+    list_display = ['name', 'date_start', 'date_finish', 'status']
     actions = ('parse_matches_ids', )
     inlines = [CompetitionTourInline]
 
@@ -70,13 +70,13 @@ class CompetitionAdmin(admin.ModelAdmin):
 
 
 class TeamAdmin(admin.ModelAdmin):
-    list_display = ['name', 'short_name', 'icon']
+    list_display = ['name', 'short_name']
     search_fields = ['name', 'short_name']
     inlines = [PlayerInline]
 
 
 class PlayerAdmin(admin.ModelAdmin):
-    list_display = ['nickname', 'team', 'game_role', 'icon', 'cost']
+    list_display = ['nickname', 'team', 'game_role', 'cost']
     list_filter = ['game_role', 'cost']
     search_fields = ['nickname']
     inlines = [PlayerMatchResultInline]
