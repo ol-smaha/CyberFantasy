@@ -1,11 +1,12 @@
 from rest_framework.routers import DefaultRouter
 
 from api.views import CompetitionViewSet, PlayerViewSet, FantasyTeamViewSet, FantasyPlayerViewSet, UserViewSet, \
-    CompetitionTourViewSet, FantasyTeamTourViewSet
+    CompetitionTourViewSet, FantasyTeamTourViewSet, AppReportViewSet, AppInfoViewSet
 
 router = DefaultRouter()
 router.register('user', UserViewSet, basename='user'),
-router.register('app-report', UserViewSet, basename='app-report'),
+router.register('app-report', AppReportViewSet, basename='app-report'),
+router.register('app-info', AppInfoViewSet, basename='app-info'),
 
 router.register('competition', CompetitionViewSet, basename='competition'),
 router.register('competition-tour', CompetitionTourViewSet, basename='competition-tour'),

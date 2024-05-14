@@ -271,3 +271,10 @@ class IgnoreMatch(models.Model):
         return self.dota_id
 
 
+class AppScreenInfo(models.Model):
+    text = models.TextField(blank=True, null=True)
+    screen = models.CharField(unique=True)
+
+    def __str__(self):
+        return self.text
+

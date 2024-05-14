@@ -10,13 +10,15 @@ from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 
 from api.filters import PlayersFilterSet
-from api.serializers import CompetitionSerializerShort, PlayerSerializer, FantasyTeamSerializer, FantasyPlayerSerializer, \
+from api.serializers import CompetitionSerializerShort, PlayerSerializer, FantasyTeamSerializer, \
+    FantasyPlayerSerializer, \
     FantasyTeamCreateSerializer, FantasyPlayerCreateSerializer, FantasyTeamTourRatingSerializer, UserSerializer, \
     CompetitionEditStatusSerializer, CompetitionTourSerializer, FantasyTeamTourSerializer, \
     FantasyTeamTourCreateSerializer, AppErrorReportSerializer, FantasyTeamRatingSerializer, \
-    CompetitionSerializerWithTours
+    CompetitionSerializerWithTours, AppScreenInfoSerializer
 
-from fantasy.models import Competition, Player, FantasyTeam, FantasyPlayer, CompetitionTour, FantasyTeamTour
+from fantasy.models import Competition, Player, FantasyTeam, FantasyPlayer, CompetitionTour, FantasyTeamTour, \
+    AppScreenInfo
 from djoser import utils
 from djoser.conf import settings
 from rest_framework import status
@@ -41,6 +43,7 @@ class CompetitionViewSet(mixins.ListModelMixin,
                          GenericViewSet):
     queryset = Competition.objects.all()
     serializer_class = CompetitionSerializerWithTours
+    filter_backends = [DjangoFilterBackend]
     permission_classes = [IsAuthenticated]
 
     def get_serializer_class(self):
@@ -213,4 +216,15 @@ class AppReportViewSet(mixins.CreateModelMixin,
                        GenericViewSet):
     queryset = AppErrorReport.objects.all()
     serializer_class = AppErrorReportSerializer
+    permission_classes = [AllowAny]
+
+
+class AppInfoViewSet(mixins.ListModelMixin,
+                     GenericViewSet):
+    queryset = AppScreenInfo.objects.all()
+    serializer_class = AppScreenInfoSerializer
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = {
+        'screen': ['exact'],
+    }
     permission_classes = [AllowAny]

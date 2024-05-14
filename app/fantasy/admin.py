@@ -6,7 +6,7 @@ from django_json_widget.widgets import JSONEditorWidget
 from django.contrib.auth.admin import UserAdmin
 
 from fantasy.models import Competition, Team, Player, FantasyTeam, FantasyPlayer, Match, \
-    PlayerMatchResult, CompetitionTour, FantasyTeamTour, MatchSeries, IgnoreMatch
+    PlayerMatchResult, CompetitionTour, FantasyTeamTour, MatchSeries, IgnoreMatch, AppScreenInfo
 from fantasy.tasks import competitions_parse_match_ids, parse_matches_data, rate_matches, save_results_to_player, \
     update_fantasy_results
 from users.models import CustomUser
@@ -91,7 +91,8 @@ class FantasyTeamAdmin(admin.ModelAdmin):
 
 class FantasyTeamTourAdmin(admin.ModelAdmin):
     list_display = ['fantasy_team', 'competition_tour', 'result']
-    list_filter = ['fantasy_team', 'competition_tour']
+    list_filter = ['competition_tour']
+    search_fields = ['fantasy_team__user__email']
     inlines = [FantasyPlayerInline]
 
 
@@ -168,6 +169,10 @@ class IgnoreMatchAdmin(admin.ModelAdmin):
     list_display = ['dota_id']
 
 
+class AppScreenInfoAdmin(admin.ModelAdmin):
+    list_display = ['screen']
+
+
 admin.site.register(CustomUser, CustomUserAdmin)
 admin.site.register(Competition, CompetitionAdmin)
 admin.site.register(Team, TeamAdmin)
@@ -180,4 +185,5 @@ admin.site.register(Match, MatchAdmin)
 admin.site.register(PlayerMatchResult, PlayerMatchResultAdmin)
 admin.site.register(CompetitionTour, CompetitionTourAdmin)
 admin.site.register(IgnoreMatch, IgnoreMatchAdmin)
+admin.site.register(AppScreenInfo, AppScreenInfoAdmin)
 
