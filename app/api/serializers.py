@@ -137,11 +137,11 @@ class FantasyTeamTourSerializer(serializers.ModelSerializer):
 
 class FantasyTeamSerializer(serializers.ModelSerializer):
     competition = CompetitionSerializerShort()
-    child_teams = FantasyTeamTourSerializer(source='child_teams', many=True, read_only=True)
+    fantasy_team_tours = FantasyTeamTourSerializer(source='child_teams', many=True, read_only=True)
 
     class Meta:
         model = FantasyTeam
-        fields = ['id', 'user', 'competition', 'child_teams', 'result', 'name_extended']
+        fields = ['id', 'user', 'competition', 'fantasy_team_tours', 'result', 'name_extended']
 
 
 class FantasyTeamCreateSerializer(serializers.ModelSerializer):
