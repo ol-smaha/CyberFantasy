@@ -60,7 +60,7 @@ class CompetitionViewSet(mixins.ListModelMixin,
             return Response({"error": "Competition not found"}, status=404)
 
         fantasy_teams = (competition.fantasy_teams.all()
-                         .annotate(rank=Window(expression=Rank(), order_by=F('result').desc())))
+                         .annotate(rank=Window(expression=Rank(), order_by=F('result').desc())))[:100]
         serializer = FantasyTeamRatingSerializer(fantasy_teams, many=True)
         return Response(serializer.data)
 
@@ -92,7 +92,7 @@ class CompetitionTourViewSet(mixins.ListModelMixin,
             return Response({"error": "Competition not found"}, status=404)
 
         fantasy_teams = (tour.fantasy_teams.all()
-                         .annotate(rank=Window(expression=Rank(), order_by=F('result').desc())))
+                         .annotate(rank=Window(expression=Rank(), order_by=F('result').desc())))[:100]
         serializer = FantasyTeamTourRatingSerializer(fantasy_teams, many=True)
         return Response(serializer.data)
 
