@@ -2,27 +2,26 @@ from django.db.models import Sum, Window, F
 from django.db.models.functions import Rank
 from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import TokenCreateView
+from djoser import utils
+from djoser.conf import settings
 from rest_framework import mixins
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
+from rest_framework import status
 
 from api.filters import PlayersFilterSet
 from api.serializers import CompetitionSerializerShort, PlayerSerializer, FantasyTeamSerializer, \
     FantasyPlayerSerializer, \
     FantasyTeamCreateSerializer, FantasyPlayerCreateSerializer, FantasyTeamTourRatingSerializer, UserSerializer, \
-    CompetitionEditStatusSerializer, CompetitionTourSerializer, FantasyTeamTourSerializer, \
-    FantasyTeamTourCreateSerializer, AppErrorReportSerializer, FantasyTeamRatingSerializer, \
-    CompetitionSerializerWithTours, AppScreenInfoSerializer
+    CompetitionEditStatusSerializer, CompetitionTourSerializer, FantasySquadByTourSerializer, \
+    FantasyTeamTourCreateSerializer, FantasyTeamRatingSerializer, \
+    CompetitionSerializerWithTours
 
-from fantasy.models import Competition, Player, FantasyTeam, FantasyPlayer, CompetitionTour, FantasyTeamTour, \
-    AppScreenInfo
-from djoser import utils
-from djoser.conf import settings
-from rest_framework import status
+from fantasy.models import Competition, Player, FantasyTeam, FantasyPlayer, CompetitionTour, FantasySquadByTour
 
-from users.models import CustomUser, AppErrorReport
+from users.models import CustomUser
 
 
 class CustomTokenCreateView(TokenCreateView):
@@ -132,14 +131,14 @@ class FantasyTeamViewSet(mixins.ListModelMixin,
             return self.serializer_class
 
 
-class FantasyTeamTourViewSet(mixins.ListModelMixin,
+class FantasySquadByTourViewSet(mixins.ListModelMixin,
                              mixins.RetrieveModelMixin,
                              mixins.CreateModelMixin,
                              mixins.UpdateModelMixin,
                              GenericViewSet):
 
-    queryset = FantasyTeamTour.objects.all()
-    serializer_class = FantasyTeamTourSerializer
+    queryset = FantasySquadByTour.objects.all()
+    serializer_class = FantasySquadByTourSerializer
     filter_backends = [DjangoFilterBackend]
     filterset_fields = {
         'fantasy_team': ['in', 'exact'],
@@ -209,21 +208,3 @@ class UserViewSet(mixins.ListModelMixin,
         current_user = request.user
         serializer = self.get_serializer(current_user)
         return Response(serializer.data)
-
-
-class AppReportViewSet(mixins.CreateModelMixin,
-                       GenericViewSet):
-    queryset = AppErrorReport.objects.all()
-    serializer_class = AppErrorReportSerializer
-    permission_classes = [AllowAny]
-
-
-class AppInfoViewSet(mixins.ListModelMixin,
-                     GenericViewSet):
-    queryset = AppScreenInfo.objects.all()
-    serializer_class = AppScreenInfoSerializer
-    filter_backends = [DjangoFilterBackend]
-    filterset_fields = {
-        'screen': ['exact'],
-    }
-    permission_classes = [AllowAny]

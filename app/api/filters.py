@@ -1,7 +1,4 @@
-import json
-
-from django_filters.rest_framework import FilterSet, NumberFilter, DjangoFilterBackend
-
+from django_filters.rest_framework import FilterSet, NumberFilter
 from fantasy.models import Competition, Player
 
 

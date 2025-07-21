@@ -1,14 +1,13 @@
 from django.contrib.auth import get_user_model
 from django.db import transaction
-from django.db.models import Sum
 from rest_framework import serializers
-from fantasy.models import Competition, Team, Player, FantasyTeam, FantasyPlayer, PlayerMatchResult, \
-    CompetitionTour, FantasyTeamTour, AppScreenInfo
+from fantasy.models import Competition, Player, FantasyTeam, FantasyPlayer, PlayerMatchResult, \
+    CompetitionTour, FantasySquadByTour
 from djoser.serializers import UserCreateSerializer
 from rest_framework.authtoken.models import Token
 
-
-from users.models import CustomUser, AppErrorReport
+from real.models import Team
+from users.models import CustomUser
 
 User = get_user_model()
 
@@ -42,18 +41,6 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUser
         fields = ['id', 'username']
-
-
-class AppErrorReportSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = AppErrorReport
-        fields = ['user', 'msg']
-
-
-class AppScreenInfoSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = AppScreenInfo
-        fields = ['screen', 'text']
 
 
 class CompetitionTourSerializer(serializers.ModelSerializer):
@@ -126,18 +113,18 @@ class FantasyPlayerCreateSerializer(serializers.ModelSerializer):
         fields = ['player', 'fantasy_team_tour', 'result']
 
 
-class FantasyTeamTourSerializer(serializers.ModelSerializer):
+class FantasySquadByTourSerializer(serializers.ModelSerializer):
     competition_tour = CompetitionTourSerializer()
     fantasy_players = FantasyPlayerSerializer(many=True, required=False)
 
     class Meta:
-        model = FantasyTeamTour
+        model = FantasySquadByTour
         fields = ['id', 'fantasy_team', 'competition_tour', 'result', 'fantasy_players']
 
 
 class FantasyTeamSerializer(serializers.ModelSerializer):
     competition = CompetitionSerializerShort()
-    fantasy_team_tours = FantasyTeamTourSerializer(source='child_teams', many=True, read_only=True)
+    fantasy_team_tours = FantasySquadByTourSerializer(source='child_teams', many=True, read_only=True)
 
     class Meta:
         model = FantasyTeam
@@ -156,7 +143,7 @@ class FantasyTeamCreateSerializer(serializers.ModelSerializer):
 class FantasyTeamRatingSerializer(serializers.ModelSerializer):
     user = UserSerializer()
     rank = serializers.IntegerField(read_only=True)
-    
+
     class Meta:
         model = FantasyTeam
         fields = ['id', 'user', 'result', 'rank']
@@ -167,15 +154,15 @@ class FantasyTeamTourRatingSerializer(serializers.ModelSerializer):
     rank = serializers.IntegerField(read_only=True)
 
     class Meta:
-        model = FantasyTeamTour
+        model = FantasySquadByTour
         fields = ['id', 'user',  'result', 'rank']
 
 
 class FantasyTeamTourCreateSerializer(serializers.ModelSerializer):
     class Meta:
-        model = FantasyTeamTour
+        model = FantasySquadByTour
         fields = ['fantasy_team', 'competition_tour']
 
     def to_representation(self, instance):
-        return FantasyTeamTourSerializer(context=self.context).to_representation(instance)
+        return FantasySquadByTourSerializer(context=self.context).to_representation(instance)
 

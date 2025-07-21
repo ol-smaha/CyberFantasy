@@ -1,0 +1,153 @@
+from django.db import models
+from django.utils import timezone
+
+from fantasy.constants import CompetitionStatusEnum, GameRoleEnum, MatchSeriesBOFormatEnum
+
+
+class Team(models.Model):
+    class Meta:
+        ordering = ['name']
+
+    name = models.CharField(max_length=64)
+    short_name = models.CharField(max_length=8, null=True, blank=True)
+    dota_id = models.CharField(max_length=128, default='', unique=True)
+
+    def __str__(self):
+        return self.name
+
+class Competition(models.Model):
+    name = models.CharField(max_length=128)
+    date_start = models.DateField(null=True, blank=True)
+    date_finish = models.DateField(null=True, blank=True)
+    status = models.CharField(max_length=64, choices=CompetitionStatusEnum.choices())
+    dota_id = models.CharField(max_length=128, default='', unique=True)
+    team = models.ManyToManyField(to=Team, related_name='competitions')
+    active_tour = models.OneToOneField(to='CompetitionTour', related_name='parent_competition',
+                                       on_delete=models.SET_NULL, null=True, blank=True)
+
+    @property
+    def is_editing_allowed(self):
+        return self.active_tour.is_editing_allowed if self.active_tour else False
+
+    def __str__(self):
+        return self.name
+
+class CompetitionTour(models.Model):
+    STATUSES = (
+        ('expected', 'expected'),
+        ('ongoing', 'ongoing'),
+        ('finished', 'finished'),
+    )
+    name = models.CharField(max_length=32, null=True, blank=True)
+    start_date = models.DateTimeField(null=True, blank=True)
+    end_date = models.DateTimeField(null=True, blank=True)
+    competition = models.ForeignKey(to=Competition, on_delete=models.CASCADE,
+                                    related_name='competition_tours', null=True, blank=True)
+    status = models.CharField(max_length=16, choices=STATUSES, default='expected')
+    editing_start = models.DateTimeField(null=True, blank=True)
+    editing_end = models.DateTimeField(null=True, blank=True)
+
+    @property
+    def is_editing_allowed(self):
+        if self.editing_start and self.editing_end:
+            current_date = timezone.now()
+            return self.editing_start <= current_date <= self.editing_end
+        else:
+            return False
+
+    def __str__(self):
+        return self.name or f'Tour: {self.pk}'
+
+class Player(models.Model):
+    class Meta:
+        ordering = ['-cost', 'team__name', 'nickname']
+
+    nickname = models.CharField(max_length=128, null=True, blank=True)
+    team = models.ForeignKey(to=Team, on_delete=models.SET_NULL,
+                             related_name='players', null=True, blank=True)
+    game_role = models.CharField(max_length=64, choices=GameRoleEnum.choices())
+    cost = models.DecimalField(max_digits=4, decimal_places=2, default=0)
+    dota_id = models.CharField(max_length=128, default='', unique=True)
+
+    def __str__(self):
+        return self.nickname
+
+class MatchSeries(models.Model):
+    dota_id = models.CharField(max_length=128, default='', unique=True)
+    bo_format = models.CharField(max_length=8, choices=MatchSeriesBOFormatEnum.choices(), blank=True, null=True)
+    competition = models.ForeignKey(to=Competition, on_delete=models.CASCADE,
+                                    related_name='match_series', null=True, blank=True)
+    competition_tour = models.ForeignKey(to=CompetitionTour, on_delete=models.SET_NULL,
+                                         related_name='match_series', null=True, blank=True)
+
+    def __str__(self):
+        return f'{self.dota_id} - {self.bo_format}'
+
+class Match(models.Model):
+    dota_id = models.CharField(max_length=128, default='', unique=True)
+    series = models.ForeignKey(to=MatchSeries, related_name='matches',
+                               blank=True, null=True, on_delete=models.CASCADE)
+    data = models.JSONField(null=True, blank=True)
+    result_data = models.JSONField(null=True, blank=True)
+    competition = models.ForeignKey(to=Competition, on_delete=models.CASCADE,
+                                    related_name='matches', null=True, blank=True)
+    competition_tour = models.ForeignKey(to=CompetitionTour, on_delete=models.SET_NULL,
+                                         related_name='matches', null=True, blank=True)
+    datetime = models.DateTimeField(null=True, blank=True)
+    team_radiant = models.ForeignKey(to=Team, related_name='matches_radiant',
+                                     blank=True, null=True, on_delete=models.SET_NULL)
+    team_dire = models.ForeignKey(to=Team, related_name='matches_dire',
+                                  blank=True, null=True, on_delete=models.SET_NULL)
+    is_parsed = models.BooleanField(default=False)
+    is_filled = models.BooleanField(default=False)
+    is_rated = models.BooleanField(default=False)
+    is_saved_to_players = models.BooleanField(default=False)
+
+    def get_competition_name(self):
+        if self.competition:
+            return self.competition.name
+        else:
+            return '*Competition'
+
+    def get_competition_tour_name(self):
+        if self.competition_tour:
+            return self.competition_tour.name
+        else:
+            return '*Tour'
+
+    def get_team_radiant_name(self):
+        if self.team_radiant:
+            return self.team_radiant.name
+        else:
+            return '*Radiant'
+
+    def get_team_dire_name(self):
+        if self.team_dire:
+            return self.team_dire.name
+        else:
+            return '*Dire'
+
+    @property
+    def full_name(self):
+        return (f"{self.get_competition_name()}/{self.get_competition_tour_name()}: "
+                f"{self.get_team_radiant_name()} - {self.get_team_dire_name()}")
+
+    def __str__(self):
+        return self.full_name
+
+
+class PlayerMatchResult(models.Model):
+    player = models.ForeignKey(to=Player, on_delete=models.CASCADE,
+                               related_name='players_res', null=True, blank=True)
+    match = models.ForeignKey(to=Match, on_delete=models.CASCADE,
+                              related_name='players_res', null=True, blank=True)
+    result = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+
+    def __str__(self):
+        return f'{self.player.nickname} - {self.match}'
+
+class IgnoreMatch(models.Model):
+    dota_id = models.CharField(max_length=128, default='', unique=True)
+
+    def __str__(self):
+        return self.dota_id

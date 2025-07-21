@@ -6,10 +6,9 @@ from django.conf import settings
 
 from celery import shared_task
 from api.connectors import DotaApiConnector
-from core.celery_app import app
 from fantasy.constants import CompetitionStatusEnum, GameRoleEnum, MatchSeriesBOFormatEnum
-from fantasy.models import (Competition, Match, Player, PlayerMatchResult, CompetitionTour, MatchSeries, Team,
-                            IgnoreMatch)
+from fantasy.models import Competition, Player, PlayerMatchResult, CompetitionTour, MatchSeries
+from real.models import Match, IgnoreMatch, Team
 
 api_connector = DotaApiConnector()
 

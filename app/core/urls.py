@@ -18,22 +18,28 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf.urls.static import static
 from django.conf import settings
+from django.contrib.auth import views as auth_views
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 from djoser import views as djoser_views
 
-from api.views import CustomTokenCreateView
+# from api.views import CustomTokenCreateView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path("password_reset/", auth_views.PasswordResetView.as_view(), name="admin_password_reset"),
+    path("password_reset/done/", auth_views.PasswordResetDoneView.as_view(), name="password_reset_done"),
+    path("reset/<uidb64>/<token>/", auth_views.PasswordResetConfirmView.as_view(), name="password_reset_confirm"),
+    path("reset/done/", auth_views.PasswordResetCompleteView.as_view(), name="password_reset_complete"),
+    path('accounts/', include('django.contrib.auth.urls')),
+    path('', include('fantasy.urls')),
 
-    path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
-    path('api/schema/swagger-ui/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
-    path('api/schema/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
+    # path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
+    # path('api/schema/swagger-ui/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
+    # path('api/schema/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
+    # path('api/auth/register/', djoser_views.UserViewSet.as_view({'post': 'create'}), name='create_user'),
+    # path('api/token/', CustomTokenCreateView.as_view(), name='token_create'),
+    # path('api/', include('api.urls')),
 
-    path('api/auth/register/', djoser_views.UserViewSet.as_view({'post': 'create'}), name='create_user'),
-    path('api/token/', CustomTokenCreateView.as_view(), name='token_create'),
-
-    path('api/', include('api.urls'))
 ]
 
 urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
