@@ -1,5 +1,6 @@
 from django.contrib.auth import get_user_model, login
 from django.shortcuts import render, redirect
+from django.urls import reverse_lazy
 from django.views.generic.base import TemplateView
 
 from users.backends import generate_username
@@ -22,7 +23,7 @@ def signup_view(request):
                                                         email=potential_user_email,
                                                         password=request.POST['password1'])
                     login(request, new_user, backend='users.backends.EmailBackend')
-                    return redirect('/accounts/login')
+                    return redirect(reverse_lazy('login'))
         else:
             return render(request, 'registration/signup.html', {'error': "Password's must match."})
     return render(request, 'registration/signup.html', {'form': form})

@@ -1,5 +1,5 @@
 # pull official base image
-FROM python:3.8-slim-buster
+FROM python:3.8-slim-bullseye
 
 # set work directory
 WORKDIR /app
@@ -8,8 +8,7 @@ WORKDIR /app
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 
-
-RUN apt-get update
+RUN apt-get -y update
 RUN apt-get install -y libpq-dev gcc
 
 

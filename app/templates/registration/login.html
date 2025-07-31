@@ -230,7 +230,6 @@
   <div class="overlay" id="overlay" onclick="closeMenu()"></div>
 
   <div class="container">
-    <p> {{ user.email }} - {{ user.username }}</p>
     <form method="post" action="{{ app_path }}" class="login-form" id="login-form">
       {% csrf_token %}
       <p class="form-text error-text">
@@ -250,11 +249,8 @@
       </div>
       <button type="submit" class="submit-btn" id="loginButton">Увійти</button>
 
-      <a class="register-link" href="#">Зареєструватись</a>
-      {% url 'admin_password_reset' as password_reset_url %}
-      {% if password_reset_url %}
-          <a class="register-link" href="{{ password_reset_url }}">Забули пароль</a>
-      {% endif %}
+      <a class="register-link" href="{% url 'signup' %}">Зареєструватись</a>
+      <a class="register-link" href="{% url 'password_reset' %}">Забули пароль</a>
     </form>
   </div>
 
