@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Fun Fantasy</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      font-family: 'Arial Rounded MT Bold', sans-serif;
+      background: repeating-linear-gradient(
+        45deg,
+        #1a1a1a,
+        #1a1a1a 5px,
+        #111 5px,
+        #111 10px
+      );
+      color: #fff;
+      overflow-x: hidden;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      background-color: #f8d99e;
+      padding: 10px;
+      font-weight: bold;
+      font-size: 24px;
+    }
+
+    .header a {
+      color: black;
+      text-decoration: none;
+    }
+
+    .menu-icon {
+      position: absolute;
+      left: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 30px;
+      height: 30px;
+      background-color: #f8d99e;
+      color: black;
+      font-weight: bold;
+      text-align: center;
+      line-height: 30px;
+      border: 1px solid #000;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 20px;
+    }
+
+    .side-menu {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 80vw;
+      max-width: 400px;
+      height: 100%;
+      background-color: #000;
+      color: #f8d99e;
+      padding: 20px;
+      box-shadow: 2px 0 5px rgba(0,0,0,0.5);
+      transform: translateX(-100%);
+      transition: transform 0.3s ease;
+      z-index: 1000;
+      overflow-y: auto;
+    }
+
+    .side-menu.open {
+      transform: translateX(0);
+    }
+
+    .side-menu ul {
+      list-style: none;
+      padding: 0;
+      margin-top: 60px;
+    }
+
+    .side-menu li {
+      margin: 15px 0;
+      font-size: 18px;
+      cursor: pointer;
+      transition: color 0.2s ease, background-color 0.2s ease;
+      padding: 5px 10px;
+      border-radius: 4px;
+    }
+
+    .side-menu li:hover {
+      color: #a7f3ce;
+    }
+
+    .side-menu li.active {
+      background-color: #f8d99e;
+      color: black;
+    }
+
+    .close-btn {
+      position: absolute;
+      top: 10px;
+      right: 15px;
+      background: transparent;
+      border: none;
+      color: #f8d99e;
+      font-size: 32px;
+      font-weight: bold;
+      cursor: pointer;
+      line-height: 1;
+      padding: 0;
+    }
+
+    .close-btn:hover {
+      color: #a7f3ce;
+    }
+
+    .overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.3);
+      z-index: 999;
+    }
+
+    .overlay.show {
+      display: block;
+    }
+
+    .container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 50px 20px 20px;
+      color: #f8d99e;
+      min-height: calc(100vh - 60px); /* щоб зайняти весь екран без хедера */
+    }
+
+    /* Бігучий рядок */
+    .marquee-container {
+      width: 75%;
+      max-width: 400px;
+      overflow: hidden;
+      border-radius: 8px;
+      margin-bottom: 130px;
+      background: transparent;
+    }
+
+    .marquee {
+      display: inline-block;
+      white-space: nowrap;
+      color: #f8d99e;
+      font-weight: bold;
+      font-size: 30px;
+      animation: marqueeAnim 10s linear infinite;
+    }
+
+    @keyframes marqueeAnim {
+      0% {
+        transform: translateX(100%);
+      }
+      100% {
+        transform: translateX(-100%);
+      }
+    }
+
+    .slider {
+      position: relative;
+      width: 100%;
+      max-width: 500px;
+      overflow: hidden;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.5);
+      margin-bottom: 20px;
+      flex-shrink: 0;
+    }
+
+    .slides {
+      display: flex;
+      transition: transform 0.5s ease-in-out;
+    }
+
+    .slide {
+      min-width: 100%;
+      box-sizing: border-box;
+    }
+
+    .slide a img {
+      width: 100%;
+      height: auto;
+      display: block;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    .nav-arrow {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 48px;
+      height: 48px;
+      background-color: transparent;
+      color: #f8d99e;
+      border: none;
+      font-size: 32px;
+      font-weight: bold;
+      cursor: pointer;
+      border-radius: 50%;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background-color 0.2s ease;
+    }
+
+    .prev {
+      left: 10px;
+    }
+
+    .next {
+      right: 10px;
+    }
+
+    .nav-arrow:hover {
+      background-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .submit-btn {
+      background-color: #f8d99e;
+      color: black;
+      padding: 15px;
+      height: 56px;
+      width: 100%;
+      max-width: 500px;
+      border: none;
+      font-weight: bold;
+      font-size: 16px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    @media (max-width: 480px) {
+      .header {
+        font-size: 20px;
+      }
+
+      .menu-icon {
+        width: 26px;
+        height: 26px;
+        font-size: 18px;
+      }
+
+      .nav-arrow {
+        font-size: 24px;
+        width: 36px;
+        height: 36px;
+      }
+
+      .marquee {
+        font-size: 30px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="header">
+    <button class="menu-icon" onclick="toggleMenu()">≡</button>
+    <a href="/">Fun Fantasy</a>
+  </div>
+
+  <div class="side-menu" id="sideMenu">
+    <button class="close-btn" onclick="closeMenu()">×</button>
+    <ul>
+      <li>Турніри</li>
+      <li>Команда</li>
+      <li>Вихід</li>
+    </ul>
+  </div>
+
+  <div class="overlay" id="overlay" onclick="closeMenu()"></div>
+
+  <div class="container">
+    <div class="marquee-container">
+      <div class="marquee">Виберіть турнір</div>
+    </div>
+
+    <div class="slider">
+      <button class="nav-arrow prev" onclick="prevSlide()">‹</button>
+      <div class="slides" id="slides">
+        {% for tournament in tournaments %}
+          <div class="slide">
+            <a href="{{ tournament.get_absolute_url }}"><img src="{{ tournament.image.url }}" alt="{{ tournament.name }}"></a>
+          </div>
+        {% endfor %}
+      </div>
+      <button class="nav-arrow next" onclick="nextSlide()">›</button>
+    </div>
+  </div>
+
+  <script>
+    function toggleMenu() {
+      const menu = document.getElementById('sideMenu');
+      const overlay = document.getElementById('overlay');
+      if (!menu.classList.contains('open')) {
+        menu.classList.add('open');
+        overlay.classList.add('show');
+        document.body.style.overflow = 'hidden';
+      } else {
+        closeMenu();
+      }
+    }
+
+    function closeMenu() {
+      document.getElementById('sideMenu').classList.remove('open');
+      document.getElementById('overlay').classList.remove('show');
+      document.body.style.overflow = '';
+    }
+
+    document.querySelectorAll('.side-menu li').forEach(item => {
+      item.addEventListener('click', () => {
+        document.querySelectorAll('.side-menu li').forEach(li => li.classList.remove('active'));
+        item.classList.add('active');
+        closeMenu();
+      });
+    });
+
+    // Слайдер
+    let currentSlide = 0;
+    const slides = document.getElementById('slides');
+    const totalSlides = slides.children.length;
+
+    function showSlide(index) {
+      if (index < 0) index = totalSlides - 1;
+      if (index >= totalSlides) index = 0;
+      slides.style.transform = `translateX(-${index * 100}%)`;
+      currentSlide = index;
+    }
+
+    function nextSlide() {
+      showSlide(currentSlide + 1);
+    }
+
+    function prevSlide() {
+      showSlide(currentSlide - 1);
+    }
+
+    // Відобразити перший слайд при завантаженні
+    showSlide(0);
+
+    // Опціонально: автоперемикання слайдів кожні 3 секунд
+    // setInterval(nextSlide, 3000);
+  </script>
+</body>
+</html>

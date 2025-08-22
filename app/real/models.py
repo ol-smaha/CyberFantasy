@@ -1,4 +1,5 @@
 from django.db import models
+from django.urls import reverse
 from django.utils import timezone
 
 from fantasy.constants import CompetitionStatusEnum, GameRoleEnum, MatchSeriesBOFormatEnum
@@ -24,10 +25,14 @@ class Competition(models.Model):
     team = models.ManyToManyField(to=Team, related_name='competitions')
     active_tour = models.OneToOneField(to='CompetitionTour', related_name='parent_competition',
                                        on_delete=models.SET_NULL, null=True, blank=True)
+    image = models.ImageField(upload_to='tournaments' ,null=True, blank=True)
 
     @property
     def is_editing_allowed(self):
         return self.active_tour.is_editing_allowed if self.active_tour else False
+
+    def get_absolute_url(self):
+        return reverse('fantasy-team', kwargs={'tournament_id': self.pk})
 
     def __str__(self):
         return self.name

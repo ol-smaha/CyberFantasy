@@ -147,7 +147,7 @@ AUTHENTICATION_BACKENDS = [
 ]
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 SITE_ID = 1
-LOGIN_REDIRECT_URL = "/login"
+LOGIN_REDIRECT_URL = "/tournaments"
 
 
 

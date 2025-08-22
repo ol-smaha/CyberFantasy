@@ -1,10 +1,21 @@
-from django.views.generic import DetailView
+from django.views.generic import DetailView, ListView
 
-from fantasy.constants import GameRoleEnum
+from fantasy.constants import GameRoleEnum, CompetitionStatusEnum
 from fantasy.models import Competition, Player
 
 
-# Create your views here.
+
+class TournamentsView(ListView):
+    model = Competition
+    template_name = 'tournaments.html'
+    context_object_name = 'tournaments'
+
+    def get_queryset(self):
+        qs = self.model.objects.exclude(status=CompetitionStatusEnum.FINISHED)
+        return qs
+
+
+
 class FantasyTeamView(DetailView):
     model = Competition
     pk_url_kwarg = 'tournament_id'

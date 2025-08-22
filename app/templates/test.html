@@ -1,71 +1,51 @@
-{% load allauth account %}
+<script>
+  function toggleMenu() {
+    const menu = document.getElementById('sideMenu');
+    const overlay = document.getElementById('overlay');
+    if (!menu.classList.contains('open')) {
+      menu.classList.add('open');
+      overlay.classList.add('show');
+      document.body.style.overflow = 'hidden';
+    } else {
+      closeMenu();
+    }
+  }
 
-{% block content %}
-    {% if not SOCIALACCOUNT_ONLY %}
-        {% setvar link %}
-            <a href="{{ signup_url }}">
-            {% endsetvar %}
-            {% setvar end_link %}
-            </a>
-        {% endsetvar %}
-        {% element p %}
-            {% blocktranslate %}If you have not created an account yet, then please {{ link }}sign up{{ end_link }} first.{% endblocktranslate %}
-        {% endelement %}
-        {% url 'account_login' as login_url %}
-        {% element form form=form method="post" action=login_url tags="entrance,login" %}
-            {% slot body %}
-                {% csrf_token %}
-                {% element fields form=form unlabeled=True %}
-                {% endelement %}
-                {{ redirect_field }}
-            {% endslot %}
-            {% slot actions %}
-                {% element button type="submit" tags="prominent,login" %}
-                    "Sign In"
-                {% endelement %}
-            {% endslot %}
-        {% endelement %}
-    {% endif %}
-{% endblock content %}
+  function closeMenu() {
+    document.getElementById('sideMenu').classList.remove('open');
+    document.getElementById('overlay').classList.remove('show');
+    document.body.style.overflow = '';
+  }
 
+  // Закриває меню та додає виділення активного пункту
+  document.querySelectorAll('.side-menu li').forEach(item => {
+    item.addEventListener('click', () => {
+      document.querySelectorAll('.side-menu li').forEach(li => li.classList.remove('active'));
+      item.classList.add('active');
+      closeMenu();
+    });
+  });
 
-<form method="post" action="{% url 'account_login' %}" class="pt-1">
-    {% csrf_token %}
-    {% if redirect_field_value %}
-        <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}"/>
-    {% endif %}
-    <p class="form-text error-text">
-        {{ form.non_field_errors.as_text }}
-    </p>
-    <div class="mb-4">
-        <label for="id_login" class="form-label">Email Address</label>
-        <input type="email" class="form-control shadow-none p-3" id="id_login" aria-describedby="emailHelp"
-               placeholder="example@gmail.com" name="login">
-        <p id="emailHelp" class="form-text error-text">
-            {{ form.login.errors.as_text }}
-        </p>
-    </div>
-    <div class="mb-4">
-        <label for="id_password" class="form-label">Password</label>
-        <input type="password" class="form-control shadow-none p-3" id="id_password" aria-describedby="passwordHelp"
-               placeholder="At least 8 characters or more" name="password">
-        <p id="passwordHelp" class="form-text error-text">
-            {{ form.password.errors.as_text }}
-        </p>
-    </div>
-    <div class="d-flex justify-content-between align-items-center mb-5" style="max-width: 400px">
-        <div class="form-check">
-            <input class="form-check-input" type="checkbox" value=""
-                   name="remember" id="id_remember">
-            <label class="form-check-label remember-text" for="id_remember">
-                Remember me
-            </label>
-        </div>
-        <div>
-            <a href="{% url 'account_reset_password' %}" class="small text-right reset-password-text">
-                Reset my password
-            </a>
-        </div>
-    </div>
-    <button class="btn blue-next inactive-button" type="submit" id="loginButton">Sign In</button>
-</form
+  // Слайдер
+  let currentSlide = 0;
+  const slides = document.getElementById('slides');
+  const totalSlides = slides.children.length;
+
+  function showSlide(index) {
+    if (index < 0) index = totalSlides - 1;
+    if (index >= totalSlides) index = 0;
+    slides.style.transform = `translateX(-${index * 100}%)`;
+    currentSlide = index;
+  }
+
+  function nextSlide() {
+    showSlide(currentSlide + 1);
+  }
+
+  function prevSlide() {
+    showSlide(currentSlide - 1);
+  }
+
+  // Optional: автовідтворення слайдів кожні 5 сек
+  // setInterval(nextSlide, 5000);
+</script>
